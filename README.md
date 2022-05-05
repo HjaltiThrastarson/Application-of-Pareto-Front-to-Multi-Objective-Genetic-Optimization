@@ -8,6 +8,8 @@
 4. Create an evaluate function that runs one iteration and shuffles with the mga[**Hjalti**]
 5. Create a vizualuzation for fitness output i.e [**Max**]
 6. Setup a library to have as a benchmark [**Max**]
+    * Evaluate existing libraries
+    * Setup MWE
 7. **LONG TERM** Look into how to create a pareto front fitness function [**Lukas + Max + Hjalti**]
 8. Look into other representations for shuffling other than gray code [**Lukas**]
 9. Find out how to set weights, like normalization ? [**Lukas**]
@@ -19,3 +21,10 @@
 3. The range is [-20, 20], idea is to map small ranges in that range to binary numbers, for example with 1 bit we would have 0 as -20 and 1 as 20
 
 ![mga](mga.png)
+
+## Literature
+
+
+## Frameworks/Libraries
+[scikit-opt](https://github.com/guofei9987/scikit-opt)
+[pymoo](https://github.com/anyoptimization/pymoo)
