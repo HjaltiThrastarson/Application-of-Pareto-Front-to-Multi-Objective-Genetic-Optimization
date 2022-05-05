@@ -23,8 +23,14 @@
 ![mga](mga.png)
 
 ## Literature
+* [Multi-Objective Optimization (Wiki)](https://en.wikipedia.org/wiki/Multi-objective_optimization)
+* [Pareto-Efficiency (Wiki)](https://en.wikipedia.org/wiki/Pareto_efficiency)
+* [A tutorial on multiobjective optimization: fundamentals and evolutionary methods](https://link.springer.com/article/10.1007/s11047-018-9685-y)
+* [Multi-objective Optimisation Using Evolutionary Algorithms: An Introduction](https://link.springer.com/chapter/10.1007/978-0-85729-652-8_1)
+* [Adaptive weighted sum method for multiobjective optimization: a new method for Pareto front generation](https://link.springer.com/article/10.1007/s00158-005-0557-6)
+* [The weighted sum method for multi-objective optimization: new insights](https://link.springer.com/article/10.1007/s00158-009-0460-7)
 
-
-## Frameworks/Libraries
-[scikit-opt](https://github.com/guofei9987/scikit-opt)
-[pymoo](https://github.com/anyoptimization/pymoo)
+## Frameworks/Libraries/Resources
+* [scikit-opt](https://github.com/guofei9987/scikit-opt)
+* [pymoo](https://github.com/anyoptimization/pymoo) - [Corresponding Paper](https://ieeexplore.ieee.org/abstract/document/9078759)
+* [Test functions for optimizations (Wikipedia)](https://en.wikipedia.org/wiki/Test_functions_for_optimization)
