@@ -1,11 +1,14 @@
 import numpy as np
 
 
+#Chankong and Haimes Function
 def f1(agent):
         return 2 + (agent[0]-2)**2 + (agent[1]-1)**2
 
 def f2(agent):
     return 9*agent[0] - (agent[1]-1)**2
+
+
 
 class MGA():
     def __init__(self, fitness_functions, population_size, max_iterations, num_variables):
