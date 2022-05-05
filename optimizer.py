@@ -11,7 +11,7 @@ def f2(agent):
 
 
 class MGA():
-    def __init__(self, fitness_functions, population_size, max_iterations, num_variables):
+    def __init__(self, fitness_functions, population_size, max_iterations, num_variables, num_bits):
         self.fitness = np.zeros(population_size)
         self.population_size = population_size
         self.max_iterations = max_iterations
@@ -20,6 +20,7 @@ class MGA():
         self.agents = self.initializeagents(num_variables)
         self.functions = fitness_functions
         self.currentiteration = 0
+        self.num_bits = num_bits
 
     def initializeagents(self, num_variables):
         agents = np.zeros((self.population_size, num_variables))
