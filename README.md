@@ -50,6 +50,10 @@ poetry install
 1. Implement micro genetic algorithm
 2. Use Chankong and Haimes test func for evaluation
 3. The range is [-20, 20], idea is to map small ranges in that range to binary numbers, for example with 1 bit we would have 0 as -20 and 1 as 20
+4. Shift gray codes and restart to circumvent hamming wall. See [Procedures & Encoding](Procedures&Encoding.md)
+5. Sort by fitness, if lower than threshold search area.
+
+## First implement a mGA
 
 ![mga](mga.png)
 
@@ -60,7 +64,7 @@ poetry install
     1. A priori: Define weights before execution on functions to obtain utility function. Result it **a point**
     2. A posteriori: Define partial ordering on objective functions, usually Pareto order. Result is **minimal set** fulfilling the order (e.g. Pareto front)
 3. Pareto dominance: y1 pareto dominates y2 if the first vector is not wores in each of the objectives and better in at least one objective than the second vector.
-4. 
+4. The solution of a Linear Scalarization Problem is on the Pareto front, no matter which weigths are chosen.
 
 ## Documentation
 
