@@ -5,6 +5,7 @@
 
 from logging import exception
 import numpy as np
+import sys
 
 # Chankong and Haimes Function
 def function_one(agent):
@@ -14,14 +15,16 @@ def function_one(agent):
 def function_two(agent):
     return 9 * agent[0] - (agent[1] - 1) ** 2
 
+
 def constraint_one(agent):
-    if (agent[0]**2 + agent[1]**2) <= 225:
+    if (agent[0] ** 2 + agent[1] ** 2) <= 225:
         return 0
     else:
         return 1
 
+
 def constraint_two(agent):
-    if (agent[0] - 3*agent[1] + 10) <= 0:
+    if (agent[0] - 3 * agent[1] + 10) <= 0:
         return 0
     else:
         return 1
@@ -101,7 +104,7 @@ class MicroGeneticAlgorithm:
             for j in range(self.num_variables):
                 # Generates random variables in range -20 to 20
                 constraints_broken = True
-                while(constraints_broken):
+                while constraints_broken:
                     agents[i][j] = (np.random.rand(1) - 0.5) * 40
                     for k in range(len(self.constraint_functions)):
                         if self.constraint_functions[k](agents[i]) == 1:
@@ -126,6 +129,10 @@ class MicroGeneticAlgorithm:
             for j in range(len(self.functions)):
                 # Calculate fitness for each function and add them up
                 fitness += self.functions[j](self.agents[i]) * self.weights[j]
+            for k in range(len(self.constraint_functions)):
+                # Calculate fitness for each constraint and add them up
+                if self.constraint_functions[k](self.agents[i]) == 1:
+                    fitness += 1000000
             self.fitness[i] = fitness
             if fitness < self.best_fitness[random_restart]:
                 self.best_fitness[random_restart] = fitness
@@ -220,7 +227,7 @@ class MicroGeneticAlgorithm:
                 agents_to_keep = self.evaluate_agents()
                 self.shuffle_agents(agents_to_keep)
             print(
-            f"Random restart: {random_restart} starting, best fitness is {self.best_fitness[random_restart]} \
+                f"Random restart: {random_restart} starting, best fitness is {self.best_fitness[random_restart]} \
             and best agent is {self.best_agents[random_restart]}"
             )
             print(self.weights)
