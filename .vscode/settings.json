@@ -7,4 +7,9 @@
     "python.linting.pylintEnabled": true,
     "python.formatting.provider": "black",
     "python.terminal.activateEnvInCurrentTerminal": true,
+    "python.testing.pytestArgs": [
+        "tests"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
 }
