@@ -5,6 +5,7 @@
 
 from logging import exception
 import numpy as np
+from numpy.typing import NDArray
 import sys
 
 # Chankong and Haimes Function
@@ -79,7 +80,7 @@ class MicroGeneticAlgorithm:
         ## Internal class variables
 
         # Function weights
-        self.weights = self.randomize_function_weights()
+        self.weights = get_random_vec_with_sum_one(length=len(self.functions))
 
         # Current Fitness of all agents and corresponding variables
         self.fitness = np.zeros(population_size)
@@ -112,15 +113,6 @@ class MicroGeneticAlgorithm:
                         else:
                             constraints_broken = False
         return agents
-
-    def randomize_function_weights(self):
-        ## creates random weights for functions
-        weights = np.zeros(len(self.functions))
-        weights[0] = np.random.rand(1)
-        for i in range(1, (len(self.functions) - 1)):
-            weights[i] = np.random.rand(weights[i - 1])
-        weights[-1] = 1 - np.sum(weights[:-1])
-        return weights
 
     def calculate_fitness_function(self, random_restart, iteration):
         ## Calculates fitness for all agents with equal weighting for all functions
@@ -231,7 +223,22 @@ class MicroGeneticAlgorithm:
             and best agent is {self.best_agents[random_restart]}"
             )
             print(self.weights)
-            self.weights = self.randomize_function_weights()
+            self.weights = get_random_vec_with_sum_one(length=len(self.functions))
+
+
+def get_random_vec_with_sum_one(length: int) -> NDArray[np.float64]:
+    """Generate a vector that sums up to 1 with uniform distribution
+
+    This can be imagined as cutting a string at random locations and measuring
+    the distance of the resulting pieces, thus the ends 0 and 1 need to be added.
+
+    Note: This is NOT choosing every coordinate randomly and then rescaling
+    to [0,1], as this would not result in a uniform distribution. See
+    https://stackoverflow.com/a/8068956 for an explanation attempt.
+    """
+    cuts = np.concatenate([0, np.random.random(size=length - 1), 1], axis=None)
+    cuts.sort()
+    return np.diff(cuts)
 
 
 def main():
