@@ -7,28 +7,7 @@ from logging import exception
 import numpy as np
 from numpy.typing import NDArray
 import sys
-
-# Chankong and Haimes Function
-def function_one(agent):
-    return 2 + (agent[0] - 2) ** 2 + (agent[1] - 1) ** 2
-
-
-def function_two(agent):
-    return 9 * agent[0] - (agent[1] - 1) ** 2
-
-
-def constraint_one(agent):
-    if (agent[0] ** 2 + agent[1] ** 2) <= 225:
-        return 0
-    else:
-        return 1
-
-
-def constraint_two(agent):
-    if (agent[0] - 3 * agent[1] + 10) <= 0:
-        return 0
-    else:
-        return 1
+from .problems import ChankongHaimes
 
 
 class MicroGeneticAlgorithm:
@@ -242,8 +221,9 @@ def get_random_vec_with_sum_one(length: int) -> NDArray[np.float64]:
 
 
 def main():
-    fitness_functions = [function_one, function_two]
-    constraint_functions = [constraint_one, constraint_two]
+    problem = ChankongHaimes()
+    fitness_functions = [problem.f_1, problem.f_2]
+    constraint_functions = [problem.g_1, problem.g_2]
     mga = MicroGeneticAlgorithm(
         fitness_functions,
         constraint_functions,
