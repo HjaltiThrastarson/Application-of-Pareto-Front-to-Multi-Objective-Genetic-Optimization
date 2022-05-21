@@ -3,6 +3,8 @@
 
 from typing import Iterable
 
+# TODO: Use numpy instead of python inbuilt sets/lists
+
 
 class NonDominatedSort:
     """Sort agents with n variables according to non-dominance of the given
@@ -13,6 +15,11 @@ class NonDominatedSort:
 
     def __init__(self, objectives: Iterable) -> None:
         self.objectives = objectives
+
+    def get_flat_non_dominated_ranking(self, agents):
+        """Returns a flat list sorted by fronts. Order withing fronts is arbitrary"""
+        non_dominated_sort = self.non_dominated_sort(agents)
+        return [agent for agent_set in non_dominated_sort for agent in agent_set]
 
     def non_dominated_sort(self, agents):
         """Returns a sorted list of sets of pareto fronts

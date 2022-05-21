@@ -16,6 +16,20 @@ def test_dominance_ranking_one_objective():
     assert ranking == expected_ranking
 
 
+def test_flat_non_dominance_ranking_one_objective():
+    # Setup
+    f_1 = lambda x: x**2
+    ranking_algo = NonDominatedSort([f_1])
+    agents = [(-30), (-2), (1), (2), (5)]
+
+    # Execute
+    ranking = ranking_algo.get_flat_non_dominated_ranking(agents)
+
+    # Compare
+    expected_ranking = [1, 2, -2, 5, -30]
+    assert ranking == expected_ranking
+
+
 def test_dominance_ranking_two_objectives():
     # Setup
     f_1 = lambda agent: agent[0] ** 2 + agent[1] ** 2
