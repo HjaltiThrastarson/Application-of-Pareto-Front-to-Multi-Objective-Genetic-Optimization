@@ -44,6 +44,10 @@ poetry install
     ```console
     poetry update
     ```
+7. Running Tests
+```console
+poetry run pytest --cov --black
+```
 
 ## IDEAS
 
