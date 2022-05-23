@@ -76,9 +76,9 @@ class MicroGeneticAlgorithm:
         )
         self.best_agents = np.zeros((random_restarts, num_variables))
 
-    def initialize_agent(self):
+    def initialize_agent(self, only_valid = False):
         """
-        Initializes a single agent that doesn't break constraints
+        Initializes a single agent that doesn't break constraints if set to only_valid
         """
         constraints_broken = True
         agent = np.zeros((self.num_variables))
@@ -88,7 +88,10 @@ class MicroGeneticAlgorithm:
                     self.problem.search_domain[variables][0],
                     self.problem.search_domain[variables][1],
                 )
-            constraints_broken = not (np.all(self.problem.evaluate_constraints(agent)))
+            if only_valid is not True:
+                break
+            if np.all(self.problem.evaluate_constraints(agent)):
+                constraints_broken = False
         return agent
 
     def initialize_agents(self):
@@ -134,11 +137,11 @@ class MicroGeneticAlgorithm:
         agents_to_keep_fully = self.agents_to_keep - self.agents_to_shuffle
         new_agents[:agents_to_keep_fully] = agents_to_keep[:agents_to_keep_fully]
         # Generate random cutoff point
-        cutoff = np.random.randint(0, self.num_bits)
         # Set first agent to keep fully to trailing agent
         trailing_agents = 1
         for i in range(agents_to_keep_fully, self.agents_to_keep):
             for j in range(self.num_variables):
+                cutoff = np.random.randint(0, self.num_bits)
                 # Don't know how to do without for loop, might be a better way
                 for h in range(agents_to_keep_fully):
                     if trailing_agents == h:
