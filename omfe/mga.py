@@ -1,20 +1,22 @@
 # pylint: disable=missing-module-docstring
 # pylint: disable=missing-class-docstring
 # pylint: disable=missing-function-docstring
+# pylint: disable=consider-using-enumerate
 
 
 from logging import exception
 import numpy as np
 from numpy.typing import NDArray
 import sys
-from .problems import ChankongHaimes
+from problems import ChankongHaimes
+from graymapping import reversegray_mapping
+from graymapping import gray_mapping
 
 
 class MicroGeneticAlgorithm:
     def __init__(
         self,
-        fitness_functions,
-        constraint_functions,
+        problem,
         num_variables,
         population_size=50,
         agents_to_keep=10,
@@ -27,10 +29,7 @@ class MicroGeneticAlgorithm:
 
         ## User input class variables
 
-        # List of functions which have input of agent with dimensoality of 1xnum_variables
-        self.functions = fitness_functions
-        # List of constraint functions similar to fitness functions
-        self.constraint_functions = constraint_functions
+        self.problem = problem
         # Number of variables i.e dimension of agent
         self.num_variables = num_variables
         # How many random agents to generate
@@ -59,7 +58,7 @@ class MicroGeneticAlgorithm:
         ## Internal class variables
 
         # Function weights
-        self.weights = get_random_vec_with_sum_one(length=len(self.functions))
+        self.weights = get_random_vec_with_sum_one(length=len(self.problem.functions))
 
         # Current Fitness of all agents and corresponding variables
         self.fitness = np.zeros(population_size)
@@ -77,33 +76,41 @@ class MicroGeneticAlgorithm:
         )
         self.best_agents = np.zeros((random_restarts, num_variables))
 
+    def initialize_agent(self):
+        """
+        Initializes a single agent that doesn't break constraints
+        """
+        constraints_broken = True
+        agent = np.zeros((self.num_variables))
+        while constraints_broken:
+            for variables in range(self.num_variables):
+                agent[variables] = np.random.uniform(
+                    self.problem.search_domain[variables][0],
+                    self.problem.search_domain[variables][1],
+                )
+            constraints_broken = not (np.all(self.problem.evaluate_constraints(agent)))
+        return agent
+
     def initialize_agents(self):
         ## Random restart for agents
         agents = np.zeros((self.population_size, self.num_variables))
         for i in range(self.population_size):
-            for j in range(self.num_variables):
-                # Generates random variables in range -20 to 20
-                constraints_broken = True
-                while constraints_broken:
-                    agents[i][j] = (np.random.rand(1) - 0.5) * 40
-                    for k in range(len(self.constraint_functions)):
-                        if self.constraint_functions[k](agents[i]) == 1:
-                            constraints_broken = True
-                        else:
-                            constraints_broken = False
+            agents[i] = self.initialize_agent()
         return agents
 
     def calculate_fitness_function(self, random_restart, iteration):
-        ## Calculates fitness for all agents with equal weighting for all functions
+        """
+        Calculate fitness of all agents
+        """
         fitness = 0
         for i in range(len(self.agents)):
-            for j in range(len(self.functions)):
-                # Calculate fitness for each function and add them up
-                fitness += self.functions[j](self.agents[i]) * self.weights[j]
-            for k in range(len(self.constraint_functions)):
-                # Calculate fitness for each constraint and add them up
-                if self.constraint_functions[k](self.agents[i]) == 1:
-                    fitness += 1000000
+            fitness_list = np.array(self.problem.evaluate_functions(self.agents[i]))
+            fitness = np.sum(self.weights * fitness_list)
+            # Calculate fitness for each constraint and add them up
+            if np.all(self.problem.evaluate_constraints(self.agents[i])):
+                pass
+            else:
+                fitness += 1000000
             self.fitness[i] = fitness
             if fitness < self.best_fitness[random_restart]:
                 self.best_fitness[random_restart] = fitness
@@ -112,9 +119,12 @@ class MicroGeneticAlgorithm:
             self.agents_history[random_restart][iteration][i] = self.agents[i]
 
     def evaluate_agents(self):
-        ## Evalutes fitness of each agent and decides which to keep
+        """
+        Sorts agents based on fitness and keeps the best ones
+        """
         # This is a magic line that sorts the agents by fitness
-        agents_sorted = np.array([x for _, x in sorted(zip(self.fitness, self.agents))])
+        #agents_sorted = np.array([x for _, x in sorted(zip(self.fitness, self.agents))])
+        agents_sorted = self.agents[self.fitness.argsort()]
         return agents_sorted[: self.agents_to_keep]
 
     def shuffle_agents(self, agents_to_keep):
@@ -135,18 +145,25 @@ class MicroGeneticAlgorithm:
                         if h == trailing_agents:
                             trailing_agents += 1
                             # Map trailing and leading to graycode
-                            gray_code_mapping_leading = self.gray_mapping(
-                                agents_to_keep[i][j]
+                            gray_code_mapping_leading = gray_mapping(
+                                agents_to_keep[i][j],
+                                self.num_bits,
+                                self.problem.search_domain[j]
                             )
-                            grat_code_mapping_trailing = self.gray_mapping(
-                                agents_to_keep[trailing_agents - 1][j]
+                            grat_code_mapping_trailing = gray_mapping(
+                                agents_to_keep[trailing_agents - 1][j],
+                                self.num_bits,
+                                self.problem.search_domain[j]
                             )
                             # Combine them to make a new agent
                             new_agent = (
                                 gray_code_mapping_leading[:cutoff]
                                 + grat_code_mapping_trailing[cutoff:]
                             )
-                            new_agent = self.reversegray_mapping(int(new_agent, 2))
+                            new_agent = reversegray_mapping(int(new_agent, 2),
+                                                            self.num_bits,
+                                                            self.problem.search_domain[j]
+                                                            )
                             new_agents[i][j] = new_agent
                             break
                         if trailing_agents == agents_to_keep_fully:
@@ -154,42 +171,8 @@ class MicroGeneticAlgorithm:
 
         # Randomly generate the rest of the agents
         for i in range(self.agents_to_keep, self.population_size):
-            for j in range(self.num_variables):
-                new_agents[i][j] = (np.random.rand(1) - 0.5) * 40
+            new_agents[i] = self.initialize_agent()
         self.agents = new_agents
-
-    def gray_mapping(self, number):
-        ## gray_mapping of agents
-        # These ranges should be variable specific, can later be implemented in the class
-        min_range = -20
-        max_range = 20
-        total_range = abs(max_range - min_range)
-        intervals = total_range / (2**self.num_bits - 1)
-        # Make sure number is non-negative
-        normalizedNumber = number + abs(min_range)
-        # Calculate the number of intervals the number is in
-        numberOfIntervals = int(normalizedNumber / intervals)
-        # Convert to graycode
-        binaryNumber = numberOfIntervals ^ (numberOfIntervals >> 1)
-        return format(binaryNumber, "0{}b".format(self.num_bits))
-
-    def reversegray_mapping(self, number):
-        ## Does reverse gray_mapping, takes in a number
-        # Takes in gray code decimal equailant number and converts to correct binary number equivalent
-        # Taking xor until
-        # n becomes zero
-        inv = 0
-        while number:
-            inv = inv ^ number
-            number = number >> 1
-        number = inv
-        min_range = -20
-        max_range = 20
-        total_range = abs(max_range - min_range)
-        intervals = total_range / (2**self.num_bits - 1)
-        number = number * intervals
-        number = number - abs(min_range)
-        return number
 
     def run_iterations(self):
         for random_restart in range(self.random_restarts):
@@ -202,7 +185,9 @@ class MicroGeneticAlgorithm:
             and best agent is {self.best_agents[random_restart]}"
             )
             print(self.weights)
-            self.weights = get_random_vec_with_sum_one(length=len(self.functions))
+            self.weights = get_random_vec_with_sum_one(
+                length=len(self.problem.functions)
+            )
 
 
 def get_random_vec_with_sum_one(length: int) -> NDArray[np.float64]:
@@ -222,11 +207,8 @@ def get_random_vec_with_sum_one(length: int) -> NDArray[np.float64]:
 
 def main():
     problem = ChankongHaimes()
-    fitness_functions = [problem.f_1, problem.f_2]
-    constraint_functions = [problem.g_1, problem.g_2]
     mga = MicroGeneticAlgorithm(
-        fitness_functions,
-        constraint_functions,
+        problem,
         num_variables=2,
         population_size=50,
         agents_to_keep=10,
