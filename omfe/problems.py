@@ -33,6 +33,12 @@ class ChankongHaimes(Problem):
             search_domain=[[-20, 20], [-20, 20]],
         )
 
+    def __repr__(self) -> str:
+        return "ChankongHaimes"
+
+    def __str__(self) -> str:
+        return "Chankong and Haimes function"
+
     @staticmethod
     def f_1(agent: Sequence[float]) -> float:
         return 2 + (agent[0] - 2) ** 2 + (agent[1] - 1) ** 2
@@ -57,6 +63,12 @@ class BinhKorn(Problem):
             constraints=[self.g_1, self.g_2],
             search_domain=[[0, 5], [0, 3]],
         )
+
+    def __repr__(self) -> str:
+        return "BinhKorn"
+
+    def __str__(self) -> str:
+        return "Binh and Korn function"
 
     @staticmethod
     def f_1(agent: Sequence[float]) -> float:
