@@ -16,6 +16,14 @@ class Problem:
     def evaluate_constraints(self, agent) -> List[bool]:
         return [constr(agent) for constr in self.constraints]
 
+    @property
+    def num_variables(self):
+        return len(self.search_domain)
+
+    @property
+    def num_objectives(self):
+        return len(self.functions)
+
 
 class ChankongHaimes(Problem):
     def __init__(self) -> None:

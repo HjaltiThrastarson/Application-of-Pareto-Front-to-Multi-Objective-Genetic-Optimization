@@ -4,20 +4,17 @@
 # pylint: disable=consider-using-enumerate
 
 
-from logging import exception
 import numpy as np
 from numpy.typing import NDArray
-import sys
-from problems import ChankongHaimes
-from graymapping import reversegray_mapping
-from graymapping import gray_mapping
+from .problems import ChankongHaimes, Problem
+from .graymapping import reversegray_mapping
+from .graymapping import gray_mapping
 
 
 class MicroGeneticAlgorithm:
     def __init__(
         self,
-        problem,
-        num_variables,
+        problem: Problem,
         population_size=50,
         agents_to_keep=10,
         agents_to_shuffle=8,
@@ -30,8 +27,6 @@ class MicroGeneticAlgorithm:
         ## User input class variables
 
         self.problem = problem
-        # Number of variables i.e dimension of agent
-        self.num_variables = num_variables
         # How many random agents to generate
         self.population_size = population_size
         # How many agents to keep after each iteration
@@ -72,18 +67,23 @@ class MicroGeneticAlgorithm:
         self.agents = self.initialize_agents()
         # Agent history
         self.agents_history = np.zeros(
-            (random_restarts, max_iterations, population_size, num_variables)
+            (
+                random_restarts,
+                max_iterations,
+                population_size,
+                self.problem.num_variables,
+            )
         )
-        self.best_agents = np.zeros((random_restarts, num_variables))
+        self.best_agents = np.zeros((random_restarts, self.problem.num_variables))
 
-    def initialize_agent(self, only_valid = False):
+    def initialize_agent(self, only_valid=False):
         """
         Initializes a single agent that doesn't break constraints if set to only_valid
         """
         constraints_broken = True
-        agent = np.zeros((self.num_variables))
+        agent = np.zeros((self.problem.num_variables))
         while constraints_broken:
-            for variables in range(self.num_variables):
+            for variables in range(self.problem.num_variables):
                 agent[variables] = np.random.uniform(
                     self.problem.search_domain[variables][0],
                     self.problem.search_domain[variables][1],
@@ -96,7 +96,7 @@ class MicroGeneticAlgorithm:
 
     def initialize_agents(self):
         ## Random restart for agents
-        agents = np.zeros((self.population_size, self.num_variables))
+        agents = np.zeros((self.population_size, self.problem.num_variables))
         for i in range(self.population_size):
             agents[i] = self.initialize_agent()
         return agents
@@ -126,21 +126,21 @@ class MicroGeneticAlgorithm:
         Sorts agents based on fitness and keeps the best ones
         """
         # This is a magic line that sorts the agents by fitness
-        #agents_sorted = np.array([x for _, x in sorted(zip(self.fitness, self.agents))])
+        # agents_sorted = np.array([x for _, x in sorted(zip(self.fitness, self.agents))])
         agents_sorted = self.agents[self.fitness.argsort()]
         return agents_sorted[: self.agents_to_keep]
 
     def shuffle_agents(self, agents_to_keep):
         ## Shuffle agents, generate a random cutoff point and
         ## select the best self.number_to_shuffle agents to be trailing agents
-        new_agents = np.zeros((self.population_size, self.num_variables))
+        new_agents = np.zeros((self.population_size, self.problem.num_variables))
         agents_to_keep_fully = self.agents_to_keep - self.agents_to_shuffle
         new_agents[:agents_to_keep_fully] = agents_to_keep[:agents_to_keep_fully]
         # Generate random cutoff point
         # Set first agent to keep fully to trailing agent
         trailing_agents = 1
         for i in range(agents_to_keep_fully, self.agents_to_keep):
-            for j in range(self.num_variables):
+            for j in range(self.problem.num_variables):
                 cutoff = np.random.randint(0, self.num_bits)
                 # Don't know how to do without for loop, might be a better way
                 for h in range(agents_to_keep_fully):
@@ -151,22 +151,23 @@ class MicroGeneticAlgorithm:
                             gray_code_mapping_leading = gray_mapping(
                                 agents_to_keep[i][j],
                                 self.num_bits,
-                                self.problem.search_domain[j]
+                                self.problem.search_domain[j],
                             )
                             grat_code_mapping_trailing = gray_mapping(
                                 agents_to_keep[trailing_agents - 1][j],
                                 self.num_bits,
-                                self.problem.search_domain[j]
+                                self.problem.search_domain[j],
                             )
                             # Combine them to make a new agent
                             new_agent = (
                                 gray_code_mapping_leading[:cutoff]
                                 + grat_code_mapping_trailing[cutoff:]
                             )
-                            new_agent = reversegray_mapping(int(new_agent, 2),
-                                                            self.num_bits,
-                                                            self.problem.search_domain[j]
-                                                            )
+                            new_agent = reversegray_mapping(
+                                int(new_agent, 2),
+                                self.num_bits,
+                                self.problem.search_domain[j],
+                            )
                             new_agents[i][j] = new_agent
                             break
                         if trailing_agents == agents_to_keep_fully:
@@ -206,23 +207,3 @@ def get_random_vec_with_sum_one(length: int) -> NDArray[np.float64]:
     cuts = np.concatenate([0, np.random.random(size=length - 1), 1], axis=None)
     cuts.sort()
     return np.diff(cuts)
-
-
-def main():
-    problem = ChankongHaimes()
-    mga = MicroGeneticAlgorithm(
-        problem,
-        num_variables=2,
-        population_size=50,
-        agents_to_keep=10,
-        agents_to_shuffle=5,
-        random_restarts=10,
-        max_iterations=500,
-        num_bits=128,
-        random_seed=42,
-    )
-    mga.run_iterations()
-
-
-if __name__ == "__main__":
-    main()
