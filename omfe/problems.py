@@ -73,3 +73,7 @@ class BinhKorn(Problem):
     @staticmethod
     def g_2(agent: Sequence[float]) -> bool:
         return (agent[0] - 8) ** 2 + (agent[1] + 3) ** 2 >= 7.7
+
+
+ch = ChankongHaimes()
+bnh = BinhKorn()
