@@ -143,9 +143,12 @@ def FitHistRec(mga, randomrestart, benchmark='False', ShowRandom=False):
         for i in range(mga.max_iterations):
             if ShowRandom:
                 for j in range(mga.population_size):
-                    if j < mga.agents_to_keep:
+                    if j < mga.agents_to_keep-mga.agents_to_shuffle:
                         plt.scatter(mga.problem.f_1(mga.agents_history[randomrestart-1][i][j]),
                                     mga.problem.f_2(mga.agents_history[randomrestart-1][i][j]), facecolors='none',edgecolors='b')
+                    elif mga.agents_to_keep-mga.agents_to_shuffle <= j < mga.agents_to_keep:
+                        plt.scatter(mga.problem.f_1(mga.agents_history[randomrestart-1][i][j]),
+                                    mga.problem.f_2(mga.agents_history[randomrestart-1][i][j]), facecolors='none',edgecolors='c')
                     else:
                         plt.scatter(mga.problem.f_1(mga.agents_history[randomrestart-1][i][j]),
                                     mga.problem.f_2(mga.agents_history[randomrestart-1][i][j]), facecolors='none',edgecolors='g')
@@ -157,8 +160,14 @@ def FitHistRec(mga, randomrestart, benchmark='False', ShowRandom=False):
                 rec.record()
             else:
                 for j in range(mga.agents_to_keep):
-                        plt.scatter(mga.problem.f_1(mga.agents_history[randomrestart-1][i][j]),
-                                    mga.problem.f_2(mga.agents_history[randomrestart-1][i][j]), facecolors='none',edgecolors='b')
+                    if j < mga.agents_to_keep - mga.agents_to_shuffle:
+                        plt.scatter(mga.problem.f_1(mga.agents_history[randomrestart - 1][i][j]),
+                                    mga.problem.f_2(mga.agents_history[randomrestart - 1][i][j]), facecolors='none',
+                                    edgecolors='b')
+                    elif mga.agents_to_keep - mga.agents_to_shuffle <= j < mga.agents_to_keep:
+                        plt.scatter(mga.problem.f_1(mga.agents_history[randomrestart - 1][i][j]),
+                                    mga.problem.f_2(mga.agents_history[randomrestart - 1][i][j]), facecolors='none',
+                                    edgecolors='c')
                 if benchmark != 'False':
                     plt.scatter(result.F[:, 0], result.F[:, 1], facecolors='none', edgecolors='r', alpha=1)
                 plt.title(f'Fitness Generation {i}')
@@ -202,9 +211,12 @@ def VarHistRec(mga, randomrestart, benchmark='False', ShowRandom=False):
         for i in range(mga.max_iterations):
             if ShowRandom:
                 for j in range(mga.population_size):
-                    if j < mga.agents_to_keep:
-                        plt.scatter(mga.agents_history[randomrestart - 1][i][j, 0],
-                                    mga.agents_history[randomrestart - 1][i][j, 1], facecolors='none', edgecolors='b')
+                    if j < mga.agents_to_keep-mga.agents_to_shuffle:
+                        plt.scatter(mga.agents_history[randomrestart-1][i][j, 0],
+                                    mga.agents_history[randomrestart-1][i][j, 1], facecolors='none',edgecolors='b')
+                    elif mga.agents_to_keep-mga.agents_to_shuffle <= j < mga.agents_to_keep:
+                        plt.scatter(mga.agents_history[randomrestart-1][i][j, 0],
+                                    mga.agents_history[randomrestart-1][i][j, 1], facecolors='none',edgecolors='c')
                     else:
                         plt.scatter(mga.agents_history[randomrestart - 1][i][j, 0],
                                     mga.agents_history[randomrestart - 1][i][j, 1], facecolors='none', edgecolors='g')
@@ -216,8 +228,12 @@ def VarHistRec(mga, randomrestart, benchmark='False', ShowRandom=False):
                 rec.record()
             else:
                 for j in range(mga.agents_to_keep):
-                    plt.scatter(mga.agents_history[randomrestart - 1][i][j, 0],
-                                mga.agents_history[randomrestart-1][i][j,1], facecolors='none', edgecolors='b')
+                    if j < mga.agents_to_keep - mga.agents_to_shuffle:
+                        plt.scatter(mga.agents_history[randomrestart - 1][i][j, 0],
+                                    mga.agents_history[randomrestart - 1][i][j, 1], facecolors='none', edgecolors='b')
+                    elif mga.agents_to_keep - mga.agents_to_shuffle <= j < mga.agents_to_keep:
+                        plt.scatter(mga.agents_history[randomrestart - 1][i][j, 0],
+                                    mga.agents_history[randomrestart - 1][i][j, 1], facecolors='none', edgecolors='c')
                 if benchmark != 'False':
                     plt.scatter(result.X[:, 0], result.X[:, 1], facecolors='none', edgecolors='r', alpha=1)
                 plt.title(f'Fitness Generation {i}')
