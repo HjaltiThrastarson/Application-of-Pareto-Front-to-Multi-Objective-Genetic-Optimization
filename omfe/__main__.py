@@ -1,5 +1,6 @@
-from .problems import ChankongHaimes
-from .mga import MicroGeneticAlgorithm
+from problems import ChankongHaimes
+from mga import MicroGeneticAlgorithm
+from Visualize import FitPlot, FitHistRec, VarPlot, VarHistRec
 
 
 def main():
