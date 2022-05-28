@@ -143,7 +143,7 @@ def FitHistRec(mga, randomrestart, benchmark='False', ShowRandom=False):
         for i in range(mga.max_iterations):
             if ShowRandom:
                 for j in range(mga.population_size):
-                    if j < 10:
+                    if j < mga.agents_to_keep:
                         plt.scatter(mga.problem.f_1(mga.agents_history[randomrestart-1][i][j]),
                                     mga.problem.f_2(mga.agents_history[randomrestart-1][i][j]), facecolors='none',edgecolors='b')
                     else:
@@ -202,7 +202,7 @@ def VarHistRec(mga, randomrestart, benchmark='False', ShowRandom=False):
         for i in range(mga.max_iterations):
             if ShowRandom:
                 for j in range(mga.population_size):
-                    if j < 10:
+                    if j < mga.agents_to_keep:
                         plt.scatter(mga.agents_history[randomrestart - 1][i][j, 0],
                                     mga.agents_history[randomrestart - 1][i][j, 1], facecolors='none', edgecolors='b')
                     else:
