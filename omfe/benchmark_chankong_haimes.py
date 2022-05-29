@@ -54,7 +54,7 @@ class ChankongHaimes(ElementwiseProblem):
         f2 = 9 * x[0] - (x[1] - 1) ** 2
 
         # Rearranged to "<= 0 constraint" and normalized
-        g1 = 1 / 255 * (x[0] ** 2 + x[1] ** 2 - 255)
+        g1 = 1 / 225 * (x[0] ** 2 + x[1] ** 2 - 225)
         g2 = 1 / 10 * (x[0] - 3 * x[1] + 10)
 
         out["F"] = [f1, f2]

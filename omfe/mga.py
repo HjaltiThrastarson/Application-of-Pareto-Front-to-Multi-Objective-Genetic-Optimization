@@ -23,7 +23,8 @@ class MicroGeneticAlgorithm:
         agents_to_keep=10,
         agents_to_shuffle=8,
         random_restarts=10,
-        max_iterations=20,
+        max_iterations=100,
+        iteration_tolerance=10,
         num_bits=8,
         random_seed=42,
     ):
@@ -48,8 +49,10 @@ class MicroGeneticAlgorithm:
 
         # How many random restarts to do
         self.random_restarts = random_restarts
-        # How many iterations per random restart to do
+        # How many max iterations per random restart to do
         self.max_iterations = max_iterations
+        # How many iterations without improvement to tolerate before restarting
+        self.iteration_tolerance = iteration_tolerance
         # Number of bits to use in gray_mapping, more --> slower but more accurate
         self.num_bits = num_bits
         # Set random seed for generating agents
@@ -150,8 +153,15 @@ class MicroGeneticAlgorithm:
             new_agents[i] = self.initialize_agent()
         self.agents = new_agents
 
-    def run_iterations(self):
+    def run_iterations(self, print_progress=True):
+        """
+        Function that runs the iterations and random restarts of the algorithm
+
+        This is the only function that should be run by the user
+        """
+
         for random_restart in range(self.random_restarts):
+            improve_count = 0
             for iteration in range(self.max_iterations):
                 # Call evaluator to get agents/fitness sorted
                 agents_sorted, fitness = self.evaluator.evaluate_agents(self.agents)
@@ -168,13 +178,18 @@ class MicroGeneticAlgorithm:
                     ):
                         self.best_fitness[random_restart] = fitness[0]
                         self.best_agents[random_restart] = agents_sorted[0]
+                    else:
+                        improve_count += 1
+                    if improve_count >= self.iteration_tolerance:
+                        break
                 # Shuffle the agents based on the graymapping mga approach
                 self.shuffle_agents(agents_sorted[: self.agents_to_keep])
-            print(
-                f"Random restart {random_restart} done \
-                  best fitness: {self.best_fitness[random_restart]} \
-                   {self.evaluator.info()}"
-            )
+            if print_progress:
+                print(
+                    f"Random restart/iterations {random_restart} {iteration+1} done \
+                    best fitness: {self.best_fitness[random_restart]} \
+                    {self.evaluator.info()}"
+                )
             self.evaluator.reset()
 
 
@@ -185,10 +200,11 @@ def main():
         problem,
         evaluator,
         population_size=10,
-        agents_to_keep=8,
-        agents_to_shuffle=6,
-        random_restarts=100,
-        max_iterations=20,
+        agents_to_keep=5,
+        agents_to_shuffle=4,
+        random_restarts=1000,
+        max_iterations=1000,
+        iteration_tolerance=10,
         num_bits=64,
         random_seed=0,
     )
