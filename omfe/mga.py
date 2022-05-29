@@ -7,14 +7,18 @@
 import numpy as np
 from numpy.typing import NDArray
 from problems import ChankongHaimes, Problem
-from graymapping import reversegray_mapping
-from graymapping import gray_mapping
+from evaluator import WeightBasedEvaluator
+from evaluator import NonDominatedSortEvaluator
+from evaluator import Evaluator
+from util_functions import reversegray_mapping
+from util_functions import gray_mapping
 
 
 class MicroGeneticAlgorithm:
     def __init__(
         self,
         problem: Problem,
+        evaluator: Evaluator,
         population_size=50,
         agents_to_keep=10,
         agents_to_shuffle=8,
@@ -27,6 +31,7 @@ class MicroGeneticAlgorithm:
         ## User input class variables
 
         self.problem = problem
+        self.evaluator = evaluator
         # How many random agents to generate
         self.population_size = population_size
         # How many agents to keep after each iteration
@@ -52,17 +57,12 @@ class MicroGeneticAlgorithm:
 
         ## Internal class variables
 
-        # Function weights
-        self.weights = get_random_vec_with_sum_one(length=len(self.problem.functions))
-
         # Current Fitness of all agents and corresponding variables
         self.fitness = np.zeros(population_size)
         # Fitness history, so that we can plot it
         self.fitness_history = np.zeros(
             (random_restarts, max_iterations, population_size)
         )
-        # Best fitness so far
-        self.best_fitness = np.ones((random_restarts)) * np.inf
         # Initial random start for agents
         self.agents = self.initialize_agents()
         # Agent history
@@ -74,6 +74,7 @@ class MicroGeneticAlgorithm:
                 self.problem.num_variables,
             )
         )
+        self.best_fitness = np.ones((random_restarts)) * np.inf
         self.best_agents = np.zeros((random_restarts, self.problem.num_variables))
 
     def initialize_agent(self, only_valid=False):
@@ -100,35 +101,6 @@ class MicroGeneticAlgorithm:
         for i in range(self.population_size):
             agents[i] = self.initialize_agent()
         return agents
-
-    def calculate_fitness_function(self, random_restart, iteration):
-        """
-        Calculate fitness of all agents
-        """
-        fitness = 0
-        for i in range(len(self.agents)):
-            fitness_list = np.array(self.problem.evaluate_functions(self.agents[i]))
-            fitness = np.sum(self.weights * fitness_list)
-            # Calculate fitness for each constraint and add them up
-            if np.all(self.problem.evaluate_constraints(self.agents[i])):
-                pass
-            else:
-                fitness += 1000000
-            self.fitness[i] = fitness
-            if fitness < self.best_fitness[random_restart]:
-                self.best_fitness[random_restart] = fitness
-                self.best_agents[random_restart][:] = self.agents[i]
-            self.fitness_history[random_restart][iteration][i] = fitness
-            self.agents_history[random_restart][iteration][i] = self.agents[i]
-
-    def evaluate_agents(self):
-        """
-        Sorts agents based on fitness and keeps the best ones
-        """
-        # This is a magic line that sorts the agents by fitness
-        # agents_sorted = np.array([x for _, x in sorted(zip(self.fitness, self.agents))])
-        agents_sorted = self.agents[self.fitness.argsort()]
-        return agents_sorted[: self.agents_to_keep]
 
     def shuffle_agents(self, agents_to_keep):
         ## Shuffle agents, generate a random cutoff point and
@@ -181,29 +153,47 @@ class MicroGeneticAlgorithm:
     def run_iterations(self):
         for random_restart in range(self.random_restarts):
             for iteration in range(self.max_iterations):
-                self.calculate_fitness_function(random_restart, iteration)
-                agents_to_keep = self.evaluate_agents()
-                self.shuffle_agents(agents_to_keep)
+                # Call evaluator to get agents/fitness sorted
+                agents_sorted, fitness = self.evaluator.evaluate_agents(self.agents)
+                # Set history of agents and fitness, sorted by performance
+                self.agents_history[random_restart, iteration] = agents_sorted
+                if fitness is not None:
+                    self.fitness_history[random_restart, iteration] = fitness
+                    # Set best fitness/agent
+                    if self.evaluator.compare_agents(
+                        self.best_fitness[random_restart],
+                        self.best_agents[random_restart],
+                        fitness[0],
+                        agents_sorted[0],
+                    ):
+                        self.best_fitness[random_restart] = fitness[0]
+                        self.best_agents[random_restart] = agents_sorted[0]
+                # Shuffle the agents based on the graymapping mga approach
+                self.shuffle_agents(agents_sorted[: self.agents_to_keep])
             print(
-                f"Random restart: {random_restart} starting, best fitness is {self.best_fitness[random_restart]} \
-            and best agent is {self.best_agents[random_restart]}"
+                f"Random restart {random_restart} done \
+                  best fitness: {self.best_fitness[random_restart]} \
+                   {self.evaluator.info()}"
             )
-            print(self.weights)
-            self.weights = get_random_vec_with_sum_one(
-                length=len(self.problem.functions)
-            )
+            self.evaluator.reset()
 
 
-def get_random_vec_with_sum_one(length: int) -> NDArray[np.float64]:
-    """Generate a vector that sums up to 1 with uniform distribution
+def main():
+    problem = ChankongHaimes()
+    evaluator = WeightBasedEvaluator(problem)
+    MGA = MicroGeneticAlgorithm(
+        problem,
+        evaluator,
+        population_size=10,
+        agents_to_keep=8,
+        agents_to_shuffle=6,
+        random_restarts=100,
+        max_iterations=20,
+        num_bits=64,
+        random_seed=0,
+    )
+    MGA.run_iterations()
 
-    This can be imagined as cutting a string at random locations and measuring
-    the distance of the resulting pieces, thus the ends 0 and 1 need to be added.
 
-    Note: This is NOT choosing every coordinate randomly and then rescaling
-    to [0,1], as this would not result in a uniform distribution. See
-    https://stackoverflow.com/a/8068956 for an explanation attempt.
-    """
-    cuts = np.concatenate([0, np.random.random(size=length - 1), 1], axis=None)
-    cuts.sort()
-    return np.diff(cuts)
+if __name__ == "__main__":
+    main()
