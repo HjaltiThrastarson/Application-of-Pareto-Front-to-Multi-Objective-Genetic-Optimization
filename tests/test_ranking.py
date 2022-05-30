@@ -1,6 +1,8 @@
 from cgi import test
 from omfe.ranking import NonDominatedSort
 
+# TODO: Test weighted sum sort
+
 
 def test_dominance_ranking_one_objective():
     # Setup

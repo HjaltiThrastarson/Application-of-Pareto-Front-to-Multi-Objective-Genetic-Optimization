@@ -1,6 +1,7 @@
 """Module containing classes/functions to rank agents based on different criteria"""
 
 
+from abc import abstractmethod
 from typing import Iterable, Sequence, List
 from numpy.typing import NDArray
 import numpy as np
@@ -9,50 +10,43 @@ import numpy as np
 # TODO: Test weighted sum sort
 
 
-class WeightedSumSort:
+class Sorter:
+    @abstractmethod
+    def sort(self, agents: NDArray[np.float64]) -> NDArray[np.float64]:
+        pass
+
+
+class WeightedSumSort(Sorter):
     """Sort agents with n variables by creating a weighted sum of the individual
-    objective functions. Lowest fitness score first."""
+    objective functions. Lowest fitness score first. If no weights are provided
+    a uniform random weight distribution with sum one will be used."""
 
-    def __init__(self, objectives: Iterable) -> None:
+    def __init__(self, objectives: Sequence, seed: int, weights=None) -> None:
+        self.rng = np.random.default_rng(seed)
         self.objectives = objectives
+        if weights:
+            self.weights = weights
+        else:
+            self.weights = self.get_random_vec_with_sum_one(len(objectives))
 
-    def equal_weighted_sum_sort(
-        self, agents: NDArray[np.float64]
-    ) -> NDArray[np.float64]:
-        weights = np.ones(len(agents)) / len(agents)
-        return self.weighted_sum_sort(agents, weights)
-
-    def random_weighted_sum_sort(
-        self, agents: NDArray[np.float64]
-    ) -> NDArray[np.float64]:
-        weights = self.get_random_vec_with_sum_one(len(agents))
-        return self.weighted_sum_sort(agents, weights)
-
-    def weighted_sum_sort(
-        self, agents: NDArray[np.float64], weights: NDArray[np.float64]
-    ) -> NDArray[np.float64]:
+    def sort(self, agents: NDArray[np.float64]) -> NDArray[np.float64]:
         """Sort the list of agents with by a weighted sum fitness score of the
         objective functions. Returns a sorted list, lowest score first
 
         Agents are just arrays of the function inputs, i.e x1, x2, x3, ...
         """
 
-        agent_scores = np.array(
-            [self.calculate_fitness(agent, weights) for agent in agents]
-        )
+        agent_scores = np.array([self.calculate_fitness(agent) for agent in agents])
         agent_scores_sorted_idx = agent_scores.argsort()
         return agents[agent_scores_sorted_idx]
 
-    def calculate_fitness(
-        self, agent: NDArray[np.float64], weights: NDArray[np.float64]
-    ) -> np.float64:
+    def calculate_fitness(self, agent: NDArray[np.float64]) -> np.float64:
         """Calculates the fitness of an agent. Number of weights must be equal
         to number of objectives/problem functions"""
         objective_scores = np.array([fun(agent) for fun in self.objectives])
-        return np.dot(objective_scores, weights)
+        return np.dot(objective_scores, self.weights)
 
-    @staticmethod
-    def get_random_vec_with_sum_one(length: int) -> NDArray[np.float64]:
+    def get_random_vec_with_sum_one(self, length: int) -> NDArray[np.float64]:
         """Generate a vector that sums up to 1 with uniform distribution
 
         This can be imagined as cutting a string at random locations and measuring
@@ -62,12 +56,12 @@ class WeightedSumSort:
         to [0,1], as this would not result in a uniform distribution. See
         https://stackoverflow.com/a/8068956 for an explanation attempt.
         """
-        cuts = np.concatenate([0, np.random.random(size=length - 1), 1], axis=None)
+        cuts = np.concatenate([0, self.rng.random(size=length - 1), 1], axis=None)
         cuts.sort()
         return np.diff(cuts)
 
 
-class NonDominatedSort:
+class NonDominatedSort(Sorter):
     """Sort agents with n variables according to non-dominance of the given
     objective functions
 
@@ -76,6 +70,9 @@ class NonDominatedSort:
 
     def __init__(self, objectives: Iterable) -> None:
         self.objectives = objectives
+
+    def sort(self, agents: NDArray[np.float64]) -> NDArray[np.float64]:
+        return self.get_flat_non_dominated_ranking(agents)
 
     def get_flat_non_dominated_ranking(self, agents):
         """Returns a flat list sorted by fronts. Order withing fronts is arbitrary"""
