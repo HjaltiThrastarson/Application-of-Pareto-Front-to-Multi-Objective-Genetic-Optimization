@@ -5,7 +5,6 @@ from omfe.visualize import plot_agents
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import time
 
 
 def main():
