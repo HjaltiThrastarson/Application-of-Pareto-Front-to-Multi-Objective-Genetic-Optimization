@@ -162,6 +162,7 @@ class MicroGeneticAlgorithm:
 
         for random_restart in range(self.random_restarts):
             improve_count = 0
+            self.agents = self.initialize_agents()
             for iteration in range(self.max_iterations):
                 # Call evaluator to get agents/fitness sorted
                 agents_sorted, fitness = self.evaluator.evaluate_agents(self.agents)

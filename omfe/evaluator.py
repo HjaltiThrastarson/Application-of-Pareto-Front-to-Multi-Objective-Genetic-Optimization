@@ -83,22 +83,22 @@ class NonDominatedSortEvaluator(Evaluator):
     def __init__(self, problem: Problem) -> None:
         super().__init__(problem)
         self.objectives = problem.functions
-    
+
     def breaks_constraints(self, agent):
-            if np.all(self.problem.evaluate_constraints(agent)) == False:
-                return True
-            return False
+        if np.all(self.problem.evaluate_constraints(agent)) == False:
+            return True
+        return False
 
     def is_dominated(self, agent_a, agent_b):
         """
         Return true if agent_a is dominated by agent_b
         """
-        b_not_worse_than_a = all(
-            fun(agent_a) >= fun(agent_b) for fun in self.objectives
-        )
-        b_better_than_a_in_one_objective = any(
-            fun(agent_a) > fun(agent_b) for fun in self.objectives
-        )
+
+        a_fitness = np.array(self.problem.evaluate_functions(agent_a))
+        b_fitness = np.array(self.problem.evaluate_functions(agent_b))
+        b_not_worse_than_a = np.all(a_fitness >= b_fitness)
+        b_better_than_a_in_one_objective = np.any(a_fitness > b_fitness)
+
         return b_not_worse_than_a and b_better_than_a_in_one_objective
 
     def evaluate_agents(self, agents):
@@ -126,15 +126,12 @@ class NonDominatedSortEvaluator(Evaluator):
         return agents[np.argsort(fitness)], fitness[np.argsort(fitness)]
 
     def compare_agents(self, best_fitness, best_agent, fitness, agent):
-            """
-            Checks if the best agent is dominated by the new one
-            """
-            return self.is_dominated(best_agent, agent) or self.breaks_constraints(best_agent)
+        """
+        Checks if the best agent is dominated by the new one
+        """
+        return self.is_dominated(best_agent, agent) or self.breaks_constraints(
+            best_agent
+        )
 
     def info(self):
         return "Non-dominated sorted"
-
-
-   
-    
-    
