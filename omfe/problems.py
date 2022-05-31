@@ -1,5 +1,11 @@
 """Module containing various MOO test problems"""
 from typing import List, Sequence
+from numpy.typing import NDArray
+import numpy as np
+
+# TODO: If too slow, vectorize evaluate_functions and is_inside_constraints
+# i.e. implement it for single agents and lists of agents directly for a problem
+# instead of a general iterator
 
 
 class Problem:
@@ -10,11 +16,17 @@ class Problem:
         self.constraints = constraints
         self.search_domain = search_domain
 
-    def evaluate_functions(self, agent) -> List[float]:
-        return [fun(agent) for fun in self.functions]
+    def evaluate_functions(self, agent) -> NDArray[np.float64]:
+        """Evaluate all objective functions for the given agent"""
+        return np.array([fun(agent) for fun in self.functions])
 
-    def evaluate_constraints(self, agent) -> List[bool]:
-        return [constr(agent) for constr in self.constraints]
+    def is_inside_constraints(self, agent) -> np.bool8:
+        """Returns True if agent is within problem constraints, False otherwise"""
+        return np.all(np.array([constr(agent) for constr in self.constraints]))
+
+    def breaks_constraint(self, agent) -> np.bool8:
+        """Returns True if any number of constraints is broken"""
+        return not self.is_inside_constraints(agent)
 
     @property
     def num_variables(self):
