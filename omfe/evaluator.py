@@ -1,6 +1,6 @@
 """Module containing classes/functions to evalute and sort agents based on different criteria"""
 from abc import ABC, abstractmethod
-from typing import Iterable, Sequence, Tuple
+from typing import Tuple
 from numpy.typing import NDArray
 
 import numpy as np
@@ -23,7 +23,9 @@ class Evaluator(ABC):
         """Sort the given agents by fitness/ranking"""
 
     @abstractmethod
-    def evaluate_sort(self, agents: NDArray[np.float64]) -> NDArray[np.float64]:
+    def evaluate_sort(
+        self, agents: NDArray[np.float64]
+    ) -> Tuple[NDArray[np.float64], NDArray[np.float64]]:
         """Sort agents by fitness/ranking, additionally returning the scoring
 
         Args:
@@ -70,7 +72,7 @@ class WeightBasedEvaluator(Evaluator):
     def evaluate_sort(self, agents):
         fitnesses = self._calculate_fitnesses_with_constraints(agents)
         fitnesses_sorted_idx = fitnesses.argsort()
-        return np.array([agents[fitnesses_sorted_idx], fitnesses[fitnesses_sorted_idx]])
+        return agents[fitnesses_sorted_idx], fitnesses[fitnesses_sorted_idx]
 
     def sort(self, agents):
         fitnesses = self._calculate_fitnesses_with_constraints(agents)
@@ -124,9 +126,6 @@ class NonDominatedSortEvaluator(Evaluator):
     """Sort agents with n variables according to non-dominance of the given
     problem functions
     """
-
-    def __init__(self, problem: Problem) -> None:
-        super().__init__(problem)
 
     def reset(self):
         return None
