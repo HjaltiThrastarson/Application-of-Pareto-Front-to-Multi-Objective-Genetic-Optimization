@@ -1,6 +1,6 @@
 from omfe.problems import ChankongHaimes, BinhKorn
 from omfe.mga import AlgorithmRunner, MicroGeneticAlgorithm
-from omfe.ranking import WeightedSumSort
+from omfe.evaluator import Evaluator, NonDominatedSortEvaluator, WeightBasedEvaluator
 from omfe.visualize import plot_agents
 
 import matplotlib as mpl
@@ -11,10 +11,11 @@ def main():
     seed = 2
     # problem = ChankongHaimes()
     problem = BinhKorn()
-    ranking = WeightedSumSort(objectives=problem.functions, seed=seed, weights=None)
+    # evaluator = WeightBasedEvaluator(problem, seed=seed, weights=None)
+    evaluator = NonDominatedSortEvaluator(problem)
     mga = MicroGeneticAlgorithm(
         problem=problem,
-        sorter=ranking,
+        evaluator=evaluator,
         population_size=5,
         agents_to_keep=1,
         max_iterations=200,
@@ -32,9 +33,7 @@ def main():
             param_dict={"marker": "o"},
         )
         fig.show()
-    # runner = AlgorithmRunner(mga, random_seed=seed)
-    # best_agents = runner.run(100)
-    # print(best_agents)
+    plt.show(block=True)
 
 
 if __name__ == "__main__":
