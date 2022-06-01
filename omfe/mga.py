@@ -12,9 +12,9 @@ from omfe.evaluator import Evaluator
 class AlgorithmRunner:
     """Runs an algorithm the given number of times"""
 
-    def __init__(self, algorithm, random_seed=42) -> None:
+    def __init__(self, algorithm, seed=42) -> None:
         self.algorithm = algorithm
-        self.rng = np.random.default_rng(seed=random_seed)
+        self.rng = np.random.default_rng(seed)
 
     def run(self, times=10):
         """Run the supplied algorithm `times` times with a different random

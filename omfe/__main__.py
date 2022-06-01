@@ -1,6 +1,6 @@
-from omfe.problems import ChankongHaimes, BinhKorn
-from omfe.mga import AlgorithmRunner, MicroGeneticAlgorithm
-from omfe.evaluator import Evaluator, NonDominatedSortEvaluator, WeightBasedEvaluator
+from omfe.problems import BinhKorn
+from omfe.mga import MicroGeneticAlgorithm
+from omfe.evaluator import NonDominatedSortEvaluator
 from omfe.visualize import plot_agents
 
 import matplotlib as mpl
@@ -9,9 +9,7 @@ import matplotlib.pyplot as plt
 
 def main():
     seed = 2
-    # problem = ChankongHaimes()
     problem = BinhKorn()
-    # evaluator = WeightBasedEvaluator(problem, seed=seed, weights=None)
     evaluator = NonDominatedSortEvaluator(problem)
     mga = MicroGeneticAlgorithm(
         problem=problem,
@@ -26,12 +24,7 @@ def main():
 
     fig, ax = plt.subplots()  # Convenience method to create figure and plot
     for agents in agents_history:
-        plot_agents(
-            axes=ax,
-            agents=agents,
-            problem=mga.problem,
-            param_dict={"marker": "o"},
-        )
+        plot_agents(axes=ax, agents=agents, problem=mga.problem, marker="o")
         fig.show()
     plt.show(block=True)
 
