@@ -99,5 +99,34 @@ class BinhKorn(Problem):
         return (agent[0] - 8) ** 2 + (agent[1] + 3) ** 2 >= 7.7
 
 
+class Kursawe(Problem):
+    def __init__(self) -> None:
+        super().__init__(
+            functions=[self.f_1, self.f_2],
+            constraints=[],
+            search_domain=[[-5, 5], [-5, 5], [-5, 5]],
+        )
+
+    def __repr__(self) -> str:
+        return "Kursawe"
+
+    def __str__(self) -> str:
+        return "Kursawe function"
+
+    @staticmethod
+    def f_1(agent: Sequence[float]) -> float:
+        return (-10 * np.exp(-0.2 * np.sqrt(agent[0] ** 2 + agent[1] ** 2))) + (
+            -10 * np.exp(-0.2 * np.sqrt(agent[1] ** 2 + agent[2] ** 2))
+        )
+
+    @staticmethod
+    def f_2(agent: Sequence[float]) -> float:
+        return (
+            (np.abs(agent[0]) ** 0.8 + 5 * np.sin(agent[0] ** 3))
+            + (np.abs(agent[1]) ** 0.8 + 5 * np.sin(agent[1] ** 3))
+            + (np.abs(agent[2]) ** 0.8 + 5 * np.sin(agent[2] ** 3))
+        )
+
+
 ch = ChankongHaimes()
 bnh = BinhKorn()
