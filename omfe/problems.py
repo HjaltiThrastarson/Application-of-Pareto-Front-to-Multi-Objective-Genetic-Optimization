@@ -1,5 +1,11 @@
 """Module containing various MOO test problems"""
 from typing import List, Sequence
+from numpy.typing import NDArray
+import numpy as np
+
+# TODO: If too slow, vectorize evaluate_functions and is_inside_constraints
+# i.e. implement it for single agents and lists of agents directly for a problem
+# instead of a general iterator
 
 
 class Problem:
@@ -10,11 +16,17 @@ class Problem:
         self.constraints = constraints
         self.search_domain = search_domain
 
-    def evaluate_functions(self, agent) -> List[float]:
-        return [fun(agent) for fun in self.functions]
+    def evaluate_functions(self, agent) -> NDArray[np.float64]:
+        """Evaluate all objective functions for the given agent"""
+        return np.array([fun(agent) for fun in self.functions])
 
-    def evaluate_constraints(self, agent) -> List[bool]:
-        return [constr(agent) for constr in self.constraints]
+    def is_inside_constraints(self, agent) -> np.bool8:
+        """Returns True if agent is within problem constraints, False otherwise"""
+        return np.all(np.array([constr(agent) for constr in self.constraints]))
+
+    def breaks_constraint(self, agent) -> np.bool8:
+        """Returns True if any number of constraints is broken"""
+        return not self.is_inside_constraints(agent)
 
     @property
     def num_variables(self):
@@ -87,5 +99,66 @@ class BinhKorn(Problem):
         return (agent[0] - 8) ** 2 + (agent[1] + 3) ** 2 >= 7.7
 
 
+class Kursawe(Problem):
+    def __init__(self) -> None:
+        super().__init__(
+            functions=[self.f_1, self.f_2],
+            constraints=[],
+            search_domain=[[-5, 5], [-5, 5], [-5, 5]],
+        )
+
+    def __repr__(self) -> str:
+        return "Kursawe"
+
+    def __str__(self) -> str:
+        return "Kursawe function"
+
+    @staticmethod
+    def f_1(agent: Sequence[float]) -> float:
+        return (-10 * np.exp(-0.2 * np.sqrt(agent[0] ** 2 + agent[1] ** 2))) + (
+            -10 * np.exp(-0.2 * np.sqrt(agent[1] ** 2 + agent[2] ** 2))
+        )
+
+    @staticmethod
+    def f_2(agent: Sequence[float]) -> float:
+        return (
+            (np.abs(agent[0]) ** 0.8 + 5 * np.sin(agent[0] ** 3))
+            + (np.abs(agent[1]) ** 0.8 + 5 * np.sin(agent[1] ** 3))
+            + (np.abs(agent[2]) ** 0.8 + 5 * np.sin(agent[2] ** 3))
+        )
+
+
+class CTP1(Problem):
+    def __init__(self) -> None:
+        super().__init__(
+            functions=[self.f_1, self.f_2],
+            constraints=[self.g_1, self.g_2],
+            search_domain=[[0, 1], [0, 1]],
+        )
+
+    def __repr__(self) -> str:
+        return "CTP1"
+
+    def __str__(self) -> str:
+        return "CTP1"
+
+    @staticmethod
+    def f_1(agent: Sequence[float]) -> float:
+        return agent[0]
+
+    @staticmethod
+    def f_2(agent: Sequence[float]) -> float:
+        return (1 + agent[1]) * np.exp(-agent[0] / (1 + agent[1]))
+
+    @staticmethod
+    def g_1(agent: Sequence[float]) -> float:
+        return CTP1.f_2(agent) / (0.858 * np.exp(-0.541 * CTP1.f_1(agent))) >= 1
+
+    def g_2(agent: Sequence[float]) -> float:
+        return CTP1.f_2(agent) / (0.728 * np.exp(-0.295 * CTP1.f_1(agent))) >= 1
+
+
 ch = ChankongHaimes()
 bnh = BinhKorn()
+kursawe = Kursawe()
+ctp1 = CTP1()

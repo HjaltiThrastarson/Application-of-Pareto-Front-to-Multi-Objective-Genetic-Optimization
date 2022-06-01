@@ -1,216 +1,269 @@
-# pylint: disable=missing-module-docstring
-# pylint: disable=missing-class-docstring
-# pylint: disable=missing-function-docstring
-# pylint: disable=consider-using-enumerate
-
-
+"""Main module to create, parameterize and run a micro genetic algorithm"""
 import numpy as np
 from numpy.typing import NDArray
-from problems import ChankongHaimes, Problem
-from evaluator import WeightBasedEvaluator
-from evaluator import NonDominatedSortEvaluator
-from evaluator import Evaluator
-from util_functions import reversegray_mapping
-from util_functions import gray_mapping
+
+from omfe.problems import Problem
+from omfe.graymapping import GrayMapper
+from omfe.evaluator import Evaluator
+
+# TODO: Make separate Shuffling class
+
+
+class AlgorithmRunner:
+    """Runs an algorithm the given number of times"""
+
+    def __init__(self, algorithm, seed=42) -> None:
+        self.algorithm = algorithm
+        self.rng = np.random.default_rng(seed)
+
+    def run(self, times=10):
+        """Run the supplied algorithm `times` times with a different random
+        initialization
+
+        Args:
+            times (int): The number of times to randomly re-initialize and run
+            the algorithm given in the constructor
+        """
+        best_agent_of_every_random_restart = np.empty(
+            shape=(times, self.algorithm.problem.num_variables)
+        )
+        for i in range(times):
+            self.algorithm.clean()
+            agents_history = self.algorithm.run()
+            best_agent_of_every_random_restart[i] = agents_history[-1][0]
+
+        return best_agent_of_every_random_restart
 
 
 class MicroGeneticAlgorithm:
+    """Implements a microgenetic algorithm configurable through parameters
+
+    The main idea is that this doesn't perform mutation - i.e. the steps
+    performed are:
+    1. Create a random population of N individuals
+    2. Select parents
+    3. Generate children using crossover
+    4. Check stopping criteria, if not met go back to 2.
+    """
+
     def __init__(
         self,
         problem: Problem,
         evaluator: Evaluator,
-        population_size=50,
-        agents_to_keep=10,
-        agents_to_shuffle=8,
-        random_restarts=10,
-        max_iterations=100,
-        iteration_tolerance=10,
-        num_bits=8,
-        random_seed=42,
+        population_size=5,
+        agents_to_keep=1,
+        max_iterations=20,
+        num_bits=32,
+        seed=42,
     ):
+        """Initialize a new micro genetic algorithm
+        Args:
+            problem (Problem): The problem the algorithm should run on. This
+            includes the objective functions, the constraints and the search
+            domain.
+            population_size (int, optional): The total size of the population,
+            i.e. the number of individuals/agents. Defaults to 5.
+            agents_to_keep (int, optional): The number of best individuals/agents
+            that should be copied into the next generation without mutation. Defaults to 1.
+            max_iterations (int, optional): Maximum number of iteration before
+            the algorithm is terminated. Defaults to 20.
+            num_bits (int, optional): Number of bits used for gray coding of
+            the agents/individuals. Defaults to 8.
+        """
+        if population_size < 1:
+            raise ValueError("Population must contain at least one individual")
 
-        ## User input class variables
+        if agents_to_keep < 0:
+            raise ValueError(
+                "Number of individuals that are directly copied to the next"
+                "generation needs to be 0 or greater"
+            )
+
+        if agents_to_keep > population_size:
+            raise ValueError(
+                "The number of individuals to keep between generations needs"
+                "to be smaller than the number of individuals in the population"
+            )
 
         self.problem = problem
         self.evaluator = evaluator
-        # How many random agents to generate
         self.population_size = population_size
-        # How many agents to keep after each iteration
         self.agents_to_keep = agents_to_keep
-        # How many numbers to shuffle after each iteration
-        self.agents_to_shuffle = agents_to_shuffle
-
-        if self.agents_to_keep < self.agents_to_shuffle:
-            raise ValueError("agents_to_keep must be smaller than agents_to_shuffle")
-        if self.agents_to_keep > self.population_size:
-            raise ValueError(
-                "Number of agents to keep cannot be greater than population size"
-            )
-
-        # How many random restarts to do
-        self.random_restarts = random_restarts
-        # How many max iterations per random restart to do
         self.max_iterations = max_iterations
-        # How many iterations without improvement to tolerate before restarting
-        self.iteration_tolerance = iteration_tolerance
-        # Number of bits to use in gray_mapping, more --> slower but more accurate
-        self.num_bits = num_bits
-        # Set random seed for generating agents
-        np.random.seed(random_seed)
+        self.rng = np.random.default_rng(seed)
+        self.agents_to_shuffle = population_size - agents_to_keep
 
-        ## Internal class variables
-
-        # Current Fitness of all agents and corresponding variables
-        self.fitness = np.zeros(population_size)
-        # Fitness history, so that we can plot it
-        self.fitness_history = np.zeros(
-            (random_restarts, max_iterations, population_size)
-        )
-        # Initial random start for agents
-        self.agents = self.initialize_agents()
-        # Agent history
-        self.agents_history = np.zeros(
-            (
-                random_restarts,
-                max_iterations,
-                population_size,
-                self.problem.num_variables,
+        if self.agents_to_shuffle % 2:
+            raise ValueError(
+                "The number of parents must be even. i.e."
+                "population_size - agents_to_keep % 2 == True"
             )
-        )
-        self.best_fitness = np.ones((random_restarts)) * np.inf
-        self.best_agents = np.zeros((random_restarts, self.problem.num_variables))
 
-    def initialize_agent(self, only_valid=False):
+        self.gray_mapper = GrayMapper(
+            (
+                min(val[0] for val in problem.search_domain),
+                max(val[1] for val in problem.search_domain),
+            ),
+            num_bits=num_bits,
+        )  # TODO: Separate gray mappers for every variable according to its search domain
+        self.agents = self._initialize_agents(only_valid=True)
+        self.agents_history = np.zeros(
+            shape=(
+                self.max_iterations + 1,
+                self.population_size,
+                self.problem.num_variables,
+            ),
+            dtype=np.float64,
+        )
+        self.agents_history[0] = self.agents
+
+    def clean(self, only_valid=False):
+        """Reset the current state of the genetic algorithm including the state
+        of the evaluator, but keeping the settings (e.g. population size, ...)
+
+        Args:
+            only_valid (bool, optional): Whether the new initial population should
+            be regenerated until it lies within the constraints. Defaults to False.
         """
-        Initializes a single agent that doesn't break constraints if set to only_valid
+        self.evaluator.reset()
+        self.agents = self._initialize_agents(only_valid=only_valid)
+        self.agents_history = np.zeros(
+            shape=(
+                self.max_iterations + 1,
+                self.population_size,
+                self.problem.num_variables,
+            ),
+            dtype=np.float64,
+        )
+        # TODO: Instead of assigning the new agents here and on every iteration,
+        # make self.agents a "view" into the history at the current index.
+        self.agents_history[0] = self.agents
+
+    def _initialize_agent(self, only_valid=False):
+        """Randomly initializes a single agent. If only_valid is set to true,
+        it will retry until no constraints are broken
         """
-        constraints_broken = True
-        agent = np.zeros((self.problem.num_variables))
-        while constraints_broken:
-            for variables in range(self.problem.num_variables):
-                agent[variables] = np.random.uniform(
-                    self.problem.search_domain[variables][0],
-                    self.problem.search_domain[variables][1],
-                )
-            if only_valid is not True:
-                break
-            if np.all(self.problem.evaluate_constraints(agent)):
-                constraints_broken = False
+        ranges = np.array(self.problem.search_domain)
+        agent = self.rng.uniform(low=ranges[:, 0], high=ranges[:, 1])
+
+        if not only_valid:
+            return agent
+
+        while not self.problem.is_inside_constraints(agent):
+            agent = self.rng.uniform(low=ranges[:, 0], high=ranges[:, 1])
+
         return agent
 
-    def initialize_agents(self):
-        ## Random restart for agents
-        agents = np.zeros((self.population_size, self.problem.num_variables))
-        for i in range(self.population_size):
-            agents[i] = self.initialize_agent()
-        return agents
+    def _initialize_agents(self, only_valid=False) -> NDArray[np.float64]:
+        """Create a randomly initialized population
 
-    def shuffle_agents(self, agents_to_keep):
-        ## Shuffle agents, generate a random cutoff point and
-        ## select the best self.number_to_shuffle agents to be trailing agents
-        new_agents = np.zeros((self.population_size, self.problem.num_variables))
-        agents_to_keep_fully = self.agents_to_keep - self.agents_to_shuffle
-        new_agents[:agents_to_keep_fully] = agents_to_keep[:agents_to_keep_fully]
-        # Generate random cutoff point
-        # Set first agent to keep fully to trailing agent
-        trailing_agents = 1
-        for i in range(agents_to_keep_fully, self.agents_to_keep):
-            for j in range(self.problem.num_variables):
-                cutoff = np.random.randint(0, self.num_bits)
-                # Don't know how to do without for loop, might be a better way
-                for h in range(agents_to_keep_fully):
-                    if trailing_agents == h:
-                        if h == trailing_agents:
-                            trailing_agents += 1
-                            # Map trailing and leading to graycode
-                            gray_code_mapping_leading = gray_mapping(
-                                agents_to_keep[i][j],
-                                self.num_bits,
-                                self.problem.search_domain[j],
-                            )
-                            grat_code_mapping_trailing = gray_mapping(
-                                agents_to_keep[trailing_agents - 1][j],
-                                self.num_bits,
-                                self.problem.search_domain[j],
-                            )
-                            # Combine them to make a new agent
-                            new_agent = (
-                                gray_code_mapping_leading[:cutoff]
-                                + grat_code_mapping_trailing[cutoff:]
-                            )
-                            new_agent = reversegray_mapping(
-                                int(new_agent, 2),
-                                self.num_bits,
-                                self.problem.search_domain[j],
-                            )
-                            new_agents[i][j] = new_agent
-                            break
-                        if trailing_agents == agents_to_keep_fully:
-                            trailing_agents = 1
-
-        # Randomly generate the rest of the agents
-        for i in range(self.agents_to_keep, self.population_size):
-            new_agents[i] = self.initialize_agent()
-        self.agents = new_agents
-
-    def run_iterations(self, print_progress=True):
+        Returns:
+            NDArray[np.float64]: An array of agents/individuals (which are
+            arrays of values as well)
         """
-        Function that runs the iterations and random restarts of the algorithm
+        return np.array(
+            [self._initialize_agent(only_valid) for _ in range(self.population_size)]
+        )
 
-        This is the only function that should be run by the user
+    def _select_parents(self) -> NDArray[np.float64]:
+        """Use the evaluator to rank agents and select the best ones for crossover
+
+        Returns:
+            NDArray[np.float64]: Returns the selected parents
         """
+        agents = self.evaluator.sort(self.agents)
+        return agents[: self.agents_to_shuffle]
 
-        for random_restart in range(self.random_restarts):
-            improve_count = 0
-            self.agents = self.initialize_agents()
-            for iteration in range(self.max_iterations):
-                # Call evaluator to get agents/fitness sorted
-                agents_sorted, fitness = self.evaluator.evaluate_agents(self.agents)
-                # Set history of agents and fitness, sorted by performance
-                self.agents_history[random_restart, iteration] = agents_sorted
-                if fitness is not None:
-                    self.fitness_history[random_restart, iteration] = fitness
-                    # Set best fitness/agent
-                    if self.evaluator.compare_agents(
-                        self.best_fitness[random_restart],
-                        self.best_agents[random_restart],
-                        fitness[0],
-                        agents_sorted[0],
-                    ):
-                        self.best_fitness[random_restart] = fitness[0]
-                        self.best_agents[random_restart] = agents_sorted[0]
-                    else:
-                        improve_count += 1
-                    if improve_count >= self.iteration_tolerance:
-                        break
-                # Shuffle the agents based on the graymapping mga approach
-                self.shuffle_agents(agents_sorted[: self.agents_to_keep])
-            if print_progress:
-                print(
-                    f"Random restart/iterations {random_restart} {iteration+1} done \
-                    best fitness: {self.best_fitness[random_restart]} \
-                    {self.evaluator.info()}"
-                )
-            self.evaluator.reset()
+    def _shuffle_agents(self, agents: NDArray[np.float64]) -> NDArray[np.float64]:
+        cutoff = self.rng.integers(low=0, high=self.gray_mapper.num_bits)
+        parent_idx = self.rng.choice(
+            len(agents), size=(len(agents) // 2, 2), replace=False
+        )
+        children = np.empty(agents.shape)
+        for idx1, idx2 in parent_idx:
+            children[idx1], children[idx2] = self._crossover_parents(
+                np.array([agents[idx1], agents[idx2]]), cutoff
+            )
+        return children
 
+    def _crossover_parents(
+        self, agents: NDArray[np.float64], cutoff: int
+    ) -> NDArray[np.float64]:
+        parents_gray = np.array(
+            [self.gray_mapper.map(var) for var in agents.flat]
+        ).reshape(agents.shape)
+        parent0 = "".join(parents_gray[0])
+        parent1 = "".join(parents_gray[1])
+        child0 = parent0[:cutoff] + parent1[cutoff:]
+        child1 = parent1[:cutoff] + parent0[cutoff:]
+        child0_gray = [
+            child0[i : i + self.gray_mapper.num_bits]
+            for i in range(0, len(child0), self.gray_mapper.num_bits)
+        ]
+        child1_gray = [
+            child1[i : i + self.gray_mapper.num_bits]
+            for i in range(0, len(child1), self.gray_mapper.num_bits)
+        ]
+        children = np.array(
+            [
+                self.gray_mapper.reverse_map(var)
+                for var in np.array([child0_gray, child1_gray]).flat
+            ]
+        ).reshape(parents_gray.shape)
+        return children
 
-def main():
-    problem = ChankongHaimes()
-    evaluator = WeightBasedEvaluator(problem)
-    MGA = MicroGeneticAlgorithm(
-        problem,
-        evaluator,
-        population_size=10,
-        agents_to_keep=5,
-        agents_to_shuffle=4,
-        random_restarts=1000,
-        max_iterations=1000,
-        iteration_tolerance=10,
-        num_bits=64,
-        random_seed=0,
-    )
-    MGA.run_iterations()
+    def _crossover_parents_every_var(
+        self, agents: NDArray[np.float64], cutoff: int
+    ) -> NDArray[np.float64]:
+        """Crosses two agents at the given cutoff point and returns the crossed
+        children
 
+        Maps the parents to graycode before crossover. Every variable of the
+        parent agent is cut at the same point and crossed with the corresponding
+        variable of the other parent. e.g.:
 
-if __name__ == "__main__":
-    main()
+        agent1: aaaa|aa, bbbb|bb, cccc|cc
+        agent2: dddd|dd, eeee|ee, ffff|ff
+
+        =>
+
+        child1: aaaa|dd, bbbb|ee, cccc|ff
+        child2: dddd|aa, eeee|bb, ffff|cc
+
+        Then the graymapping of every variable is reversed before the children
+        are returned.
+
+        Args:
+            agents (NDArray[np.float64]): Two agents that will be crossed
+
+        Returns:
+            NDArray[np.float64]: Two children that are made up from the parents
+        """
+        parents_gray = np.array(
+            [self.gray_mapper.map(var) for var in agents.flat]
+        ).reshape(agents.shape)
+        for var in parents_gray.T:
+            tmp = var[0]
+            var[0] = var[0][:cutoff] + var[1][cutoff:]
+            var[1] = var[1][:cutoff] + tmp[cutoff:]
+        children = np.array(
+            [self.gray_mapper.reverse_map(var) for var in parents_gray.flat]
+        ).reshape(parents_gray.shape)
+        return children
+
+    def run(self) -> NDArray[np.float64]:
+        """Run the micro genetic algorithm
+
+        Returns:
+            NDArray[np.float64]: A numpy 3D array with a list of all agents of
+            every generation
+        """
+        for itr in range(self.max_iterations):
+            parents = self._select_parents()
+            children = self._shuffle_agents(parents)
+            new_generation = np.concatenate(
+                (parents[: self.agents_to_keep], children), axis=0
+            )
+            self.agents = new_generation
+            self.agents_history[itr + 1] = new_generation  # 0 is the start generation
+        return self.agents_history

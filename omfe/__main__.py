@@ -1,24 +1,32 @@
-from problems import ChankongHaimes
-from mga import MicroGeneticAlgorithm
-from evaluator import WeightBasedEvaluator
-from Visualize import FitPlot, FitHistRec, VarPlot, VarHistRec
+from omfe.problems import BinhKorn
+from omfe.mga import MicroGeneticAlgorithm
+from omfe.evaluator import NonDominatedSortEvaluator
+from omfe.visualize import plot_agents
+
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 
 
 def main():
-    problem = ChankongHaimes()
-    evaluator = WeightBasedEvaluator(problem)
+    seed = 2
+    problem = BinhKorn()
+    evaluator = NonDominatedSortEvaluator(problem)
     mga = MicroGeneticAlgorithm(
-        problem,
+        problem=problem,
         evaluator=evaluator,
-        population_size=50,
-        agents_to_keep=10,
-        agents_to_shuffle=5,
-        random_restarts=10,
-        max_iterations=500,
-        num_bits=128,
-        random_seed=42,
+        population_size=5,
+        agents_to_keep=1,
+        max_iterations=200,
+        num_bits=8,
+        seed=seed,
     )
-    mga.run_iterations()
+    agents_history = mga.run()
+
+    fig, ax = plt.subplots()  # Convenience method to create figure and plot
+    for agents in agents_history:
+        plot_agents(axes=ax, agents=agents, problem=mga.problem, marker="o")
+        fig.show()
+    plt.show(block=True)
 
 
 if __name__ == "__main__":
