@@ -128,5 +128,37 @@ class Kursawe(Problem):
         )
 
 
+class CTP1(Problem):
+    def __init__(self) -> None:
+        super().__init__(
+            functions=[self.f_1, self.f_2],
+            constraints=[self.g_1, self.g_2],
+            search_domain=[[0, 1], [0, 1]],
+        )
+
+    def __repr__(self) -> str:
+        return "CTP1"
+
+    def __str__(self) -> str:
+        return "CTP1"
+
+    @staticmethod
+    def f_1(agent: Sequence[float]) -> float:
+        return agent[0]
+
+    @staticmethod
+    def f_2(agent: Sequence[float]) -> float:
+        return (1 + agent[1]) * np.exp(-agent[0] / (1 + agent[1]))
+
+    @staticmethod
+    def g_1(agent: Sequence[float]) -> float:
+        return CTP1.f_2(agent) / (0.858 * np.exp(-0.541 * CTP1.f_1(agent))) >= 1
+
+    def g_2(agent: Sequence[float]) -> float:
+        return CTP1.f_2(agent) / (0.728 * np.exp(-0.295 * CTP1.f_1(agent))) >= 1
+
+
 ch = ChankongHaimes()
 bnh = BinhKorn()
+kursawe = Kursawe()
+ctp1 = CTP1()
