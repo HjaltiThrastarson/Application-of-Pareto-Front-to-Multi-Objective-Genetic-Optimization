@@ -1,9 +1,9 @@
 """Module containing classes/functions to evalute and sort agents based on different criteria"""
 from abc import ABC, abstractmethod
 from typing import Tuple
-from numpy.typing import NDArray
 
 import numpy as np
+import numpy.typing as npt
 from omfe.problems import Problem
 
 # TODO: Use numpy instead of python inbuilt sets/lists
@@ -19,21 +19,21 @@ class Evaluator(ABC):
         self.problem = problem
 
     @abstractmethod
-    def sort(self, agents: NDArray[np.float64]) -> NDArray[np.float64]:
+    def sort(self, agents: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
         """Sort the given agents by fitness/ranking"""
 
     @abstractmethod
     def evaluate_sort(
-        self, agents: NDArray[np.float64]
-    ) -> Tuple[NDArray[np.float64], NDArray[np.float64]]:
+        self, agents: npt.NDArray[np.float64]
+    ) -> Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
         """Sort agents by fitness/ranking, additionally returning the scoring
 
         Args:
-            agents (NDArray[np.float64]): List of agents (n-tuples). n being
+            agents (npt.NDArray[np.float64]): List of agents (n-tuples). n being
             equals the number of variables of the given problem
 
         Returns:
-            NDArray[np.float64]: Two lists, one with the sorted agents, one
+            npt.NDArray[np.float64]: Two lists, one with the sorted agents, one
             with the fitness/ranking score
         """
 
@@ -83,13 +83,13 @@ class WeightBasedEvaluator(Evaluator):
             agent_a
         ) < self._calculate_fitness_with_constraints(agent_b)
 
-    def _calculate_fitnesses_with_constraints(self, agents: NDArray[np.float64]):
+    def _calculate_fitnesses_with_constraints(self, agents: npt.NDArray[np.float64]):
         return np.array(
             [self._calculate_fitness_with_constraints(agent) for agent in agents]
         )
 
     def _calculate_fitness_with_constraints(
-        self, agent: NDArray[np.float64]
+        self, agent: npt.NDArray[np.float64]
     ) -> np.float64:
         """Calculate the fitness of an agent, setting it to infinity if
         it breaks the problem constraints"""
@@ -98,13 +98,13 @@ class WeightBasedEvaluator(Evaluator):
         else:
             return np.float64("inf")
 
-    def _calculate_fitness(self, agent: NDArray[np.float64]) -> np.float64:
+    def _calculate_fitness(self, agent: npt.NDArray[np.float64]) -> np.float64:
         """Calculates the fitness of an agent. Number of weights must be equal
         to number of objectives/problem functions"""
         fitness_list = self.problem.evaluate_functions(agent)
         return np.dot(fitness_list, self.weights)
 
-    def _get_random_vec_with_sum_one(self, length: int) -> NDArray[np.float64]:
+    def _get_random_vec_with_sum_one(self, length: int) -> npt.NDArray[np.float64]:
         """Generate a vector that sums up to 1 with uniform distribution
 
         This can be imagined as cutting a string at random locations and measuring
@@ -131,8 +131,8 @@ class NonDominatedSortEvaluator(Evaluator):
         return None
 
     def evaluate_sort(
-        self, agents: NDArray[np.float64]
-    ) -> Tuple[NDArray[np.float64], NDArray[np.float64]]:
+        self, agents: npt.NDArray[np.float64]
+    ) -> Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
         # Initialize the domination counts aka fitness
         fitness = np.zeros(len(agents))
         # Loop through all agents
@@ -156,7 +156,7 @@ class NonDominatedSortEvaluator(Evaluator):
         fitness_idx = fitness.argsort()
         return agents[fitness_idx], fitness[fitness_idx]
 
-    def sort(self, agents: NDArray[np.float64]) -> NDArray[np.float64]:
+    def sort(self, agents: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
         return self.evaluate_sort(agents)[0]
 
     def is_better_than(self, agent_a, agent_b):
@@ -164,7 +164,7 @@ class NonDominatedSortEvaluator(Evaluator):
             self.problem.breaks_constraint(agent_b) or self._dominates(agent_a, agent_b)
         ) and not self.problem.breaks_constraint(agent_a)
 
-    def get_pareto_fronts(self, agents: NDArray[np.float64]):
+    def get_pareto_fronts(self, agents: npt.NDArray[np.float64]):
         """Returns a sorted list of sets of pareto fronts
 
         The sets themselves are not sorted. The first set is the most dominant

@@ -52,7 +52,6 @@ A `+` indicating that this is already available in pymoo
 
 import numpy as np
 import numpy.typing as npt
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 import pymoo as moo
 

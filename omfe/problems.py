@@ -1,7 +1,7 @@
 """Module containing various MOO test problems"""
-from typing import List, Sequence
-from numpy.typing import NDArray
+from typing import Sequence
 import numpy as np
+import numpy.typing as npt
 
 # TODO: If too slow, vectorize evaluate_functions and is_inside_constraints
 # i.e. implement it for single agents and lists of agents directly for a problem
@@ -16,7 +16,7 @@ class Problem:
         self.constraints = constraints
         self.search_domain = search_domain
 
-    def evaluate_functions(self, agent) -> NDArray[np.float64]:
+    def evaluate_functions(self, agent) -> npt.NDArray[np.float64]:
         """Evaluate all objective functions for the given agent"""
         return np.array([fun(agent) for fun in self.functions])
 
@@ -154,11 +154,6 @@ class CTP1(Problem):
     def g_1(agent: Sequence[float]) -> float:
         return CTP1.f_2(agent) / (0.858 * np.exp(-0.541 * CTP1.f_1(agent))) >= 1
 
+    @staticmethod
     def g_2(agent: Sequence[float]) -> float:
         return CTP1.f_2(agent) / (0.728 * np.exp(-0.295 * CTP1.f_1(agent))) >= 1
-
-
-ch = ChankongHaimes()
-bnh = BinhKorn()
-kursawe = Kursawe()
-ctp1 = CTP1()

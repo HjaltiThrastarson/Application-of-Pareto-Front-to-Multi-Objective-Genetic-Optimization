@@ -5,11 +5,8 @@
 
 
 import numpy as np
-from mga import MicroGeneticAlgorithm
-from problems import ChankongHaimes, Problem
-from evaluator import NonDominatedSortEvaluator
-from evaluator import WeightBasedEvaluator
-from evaluator import Evaluator
+from omfe.mga import MicroGeneticAlgorithm
+from omfe.evaluator import Evaluator
 
 
 class TournamentSelector:
@@ -74,33 +71,3 @@ class TournamentSelector:
             self.contenders_index = self.generate_indexes()
             if print_progress:
                 print(f"Iteration {i+1}, number of winners: {len(self.contenders)}")
-
-
-def main():
-    problem = ChankongHaimes()
-    evaluator = WeightBasedEvaluator(problem)
-    tournament_evaluator = NonDominatedSortEvaluator(problem)
-    MGA = MicroGeneticAlgorithm(
-        problem,
-        evaluator,
-        population_size=10,
-        agents_to_keep=5,
-        agents_to_shuffle=4,
-        random_restarts=1000,
-        max_iterations=1000,
-        iteration_tolerance=10,
-        num_bits=64,
-        random_seed=0,
-    )
-    TMS = TournamentSelector(
-        MGA,
-        tournament_evaluator,
-        tournament_size=20,
-        num_tournaments=100,
-        num_iterations=20,
-    )
-    TMS.run_iterations()
-
-
-if __name__ == "__main__":
-    main()
