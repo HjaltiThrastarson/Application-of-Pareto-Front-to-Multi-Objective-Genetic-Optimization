@@ -59,7 +59,7 @@ poetry run pytest --cov --black
 
 ## First implement a mGA
 
-![mga](mga.png)
+![mga](img/mga.png)
 
 ## Notes on [3]
 
