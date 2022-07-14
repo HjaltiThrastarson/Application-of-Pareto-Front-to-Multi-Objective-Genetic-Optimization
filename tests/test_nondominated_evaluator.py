@@ -1,6 +1,5 @@
 from cgi import test
 import numpy as np
-from omfe.ranking import NonDominatedSort
 from omfe.evaluator import NonDominatedSortEvaluator
 from omfe.problems import Problem
 
