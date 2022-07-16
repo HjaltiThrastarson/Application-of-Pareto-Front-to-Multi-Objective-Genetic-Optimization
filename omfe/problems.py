@@ -1,5 +1,5 @@
 """Module containing various MOO test problems"""
-from typing import Sequence
+from typing import Callable, Sequence
 import numpy as np
 import numpy.typing as npt
 
@@ -11,29 +11,39 @@ import numpy.typing as npt
 class Problem:
     """Default problem class consisting of functions, constraints and the search domain"""
 
-    def __init__(self, functions, constraints, search_domain) -> None:
+    def __init__(
+        self,
+        functions: Sequence[Callable],
+        constraints: Sequence[Callable],
+        search_domain: Sequence[Sequence[int]],
+    ) -> None:
         self.functions = functions
         self.constraints = constraints
         self.search_domain = search_domain
 
-    def evaluate_functions(self, agent) -> npt.NDArray[np.float64]:
+    def evaluate_functions(
+        self, agent: npt.NDArray[np.float64]
+    ) -> npt.NDArray[np.float64]:
         """Evaluate all objective functions for the given agent"""
         return np.array([fun(agent) for fun in self.functions])
 
-    def is_inside_constraints(self, agent) -> np.bool8:
+    def is_inside_constraints(self, agent: npt.NDArray[np.float64]) -> bool:
         """Returns True if agent is within problem constraints, False otherwise"""
-        return np.all(np.array([constr(agent) for constr in self.constraints]))
+        constraints_met: bool = np.all(
+            np.array([constr(agent) for constr in self.constraints])
+        ).astype(bool)
+        return constraints_met
 
-    def breaks_constraint(self, agent) -> np.bool8:
+    def breaks_constraint(self, agent: npt.NDArray[np.float64]) -> bool:
         """Returns True if any number of constraints is broken"""
         return not self.is_inside_constraints(agent)
 
     @property
-    def num_variables(self):
+    def num_variables(self) -> int:
         return len(self.search_domain)
 
     @property
-    def num_objectives(self):
+    def num_objectives(self) -> int:
         return len(self.functions)
 
 

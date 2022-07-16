@@ -1,6 +1,7 @@
 """Main module to create, parameterize and run a micro genetic algorithm"""
+from typing import Optional
 import numpy as np
-from numpy.typing import NDArray
+import numpy.typing as npt
 
 from omfe.problems import Problem
 from omfe.graymapping import GrayMapper
@@ -16,7 +17,7 @@ class AlgorithmRunner:
         self.algorithm = algorithm
         self.rng = np.random.default_rng(seed)
 
-    def run(self, times=10):
+    def run(self, times=10) -> npt.NDArray[np.float64]:
         """Run the supplied algorithm `times` times with a different random
         initialization
 
@@ -55,7 +56,7 @@ class MicroGeneticAlgorithm:
         max_iterations=20,
         num_bits=32,
         seed=42,
-    ):
+    ) -> None:
         """Initialize a new micro genetic algorithm
         Args:
             problem (Problem): The problem the algorithm should run on. This
@@ -117,7 +118,7 @@ class MicroGeneticAlgorithm:
         )
         self.agents_history[0] = self.agents
 
-    def clean(self, only_valid=False):
+    def clean(self, only_valid: Optional[bool] = False) -> None:
         """Reset the current state of the genetic algorithm including the state
         of the evaluator, but keeping the settings (e.g. population size, ...)
 
@@ -139,7 +140,9 @@ class MicroGeneticAlgorithm:
         # make self.agents a "view" into the history at the current index.
         self.agents_history[0] = self.agents
 
-    def _initialize_agent(self, only_valid=False):
+    def _initialize_agent(
+        self, only_valid: Optional[bool] = False
+    ) -> npt.NDArray[np.float64]:
         """Randomly initializes a single agent. If only_valid is set to true,
         it will retry until no constraints are broken
         """
@@ -154,27 +157,31 @@ class MicroGeneticAlgorithm:
 
         return agent
 
-    def _initialize_agents(self, only_valid=False) -> NDArray[np.float64]:
+    def _initialize_agents(
+        self, only_valid: Optional[bool] = False
+    ) -> npt.NDArray[np.float64]:
         """Create a randomly initialized population
 
         Returns:
-            NDArray[np.float64]: An array of agents/individuals (which are
+            npt.NDArray[np.float64]: An array of agents/individuals (which are
             arrays of values as well)
         """
         return np.array(
             [self._initialize_agent(only_valid) for _ in range(self.population_size)]
         )
 
-    def _select_parents(self) -> NDArray[np.float64]:
+    def _select_parents(self) -> npt.NDArray[np.float64]:
         """Use the evaluator to rank agents and select the best ones for crossover
 
         Returns:
-            NDArray[np.float64]: Returns the selected parents
+            npt.NDArray[np.float64]: Returns the selected parents
         """
         agents = self.evaluator.sort(self.agents)
         return agents[: self.agents_to_shuffle]
 
-    def _shuffle_agents(self, agents: NDArray[np.float64]) -> NDArray[np.float64]:
+    def _shuffle_agents(
+        self, agents: npt.NDArray[np.float64]
+    ) -> npt.NDArray[np.float64]:
         cutoff = self.rng.integers(low=0, high=self.gray_mapper.num_bits)
         parent_idx = self.rng.choice(
             len(agents), size=(len(agents) // 2, 2), replace=False
@@ -187,9 +194,9 @@ class MicroGeneticAlgorithm:
         return children
 
     def _crossover_parents(
-        self, agents: NDArray[np.float64], cutoff: int
-    ) -> NDArray[np.float64]:
-        parents_gray = np.array(
+        self, agents: npt.NDArray[np.float64], cutoff: int
+    ) -> npt.NDArray[np.float64]:
+        parents_gray: npt.NDArray[np.float64] = np.array(
             [self.gray_mapper.map(var) for var in agents.flat]
         ).reshape(agents.shape)
         parent0 = "".join(parents_gray[0])
@@ -213,8 +220,8 @@ class MicroGeneticAlgorithm:
         return children
 
     def _crossover_parents_every_var(
-        self, agents: NDArray[np.float64], cutoff: int
-    ) -> NDArray[np.float64]:
+        self, agents: npt.NDArray[np.float64], cutoff: int
+    ) -> npt.NDArray[np.float64]:
         """Crosses two agents at the given cutoff point and returns the crossed
         children
 
@@ -234,10 +241,10 @@ class MicroGeneticAlgorithm:
         are returned.
 
         Args:
-            agents (NDArray[np.float64]): Two agents that will be crossed
+            agents (npt.NDArray[np.float64]): Two agents that will be crossed
 
         Returns:
-            NDArray[np.float64]: Two children that are made up from the parents
+            npt.NDArray[np.float64]: Two children that are made up from the parents
         """
         parents_gray = np.array(
             [self.gray_mapper.map(var) for var in agents.flat]
@@ -251,11 +258,11 @@ class MicroGeneticAlgorithm:
         ).reshape(parents_gray.shape)
         return children
 
-    def run(self) -> NDArray[np.float64]:
+    def run(self) -> npt.NDArray[np.float64]:
         """Run the micro genetic algorithm
 
         Returns:
-            NDArray[np.float64]: A numpy 3D array with a list of all agents of
+            npt.NDArray[np.float64]: A numpy 3D array with a list of all agents of
             every generation
         """
         for itr in range(self.max_iterations):

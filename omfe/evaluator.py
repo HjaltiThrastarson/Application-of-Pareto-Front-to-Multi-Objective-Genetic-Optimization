@@ -1,6 +1,6 @@
 """Module containing classes/functions to evalute and sort agents based on different criteria"""
 from abc import ABC, abstractmethod
-from typing import Tuple
+from typing import Iterable, Set, Tuple, List, Any, Optional
 
 import numpy as np
 import numpy.typing as npt
@@ -38,11 +38,13 @@ class Evaluator(ABC):
         """
 
     @abstractmethod
-    def reset(self):
+    def reset(self) -> None:
         """Function to call to reset the internal state of the evaluator"""
 
     @abstractmethod
-    def is_better_than(self, agent_a, agent_b):
+    def is_better_than(
+        self, agent_a: npt.NDArray[np.float64], agent_b: npt.NDArray[np.float64]
+    ):
         """Returns true if agent_a is 'better' i.e. fitter/ranked higher than agent_b"""
 
 
@@ -51,7 +53,12 @@ class WeightBasedEvaluator(Evaluator):
     objective functions. Lowest fitness score first. If no weights are provided
     a uniform random weight distribution with sum one will be used."""
 
-    def __init__(self, problem: Problem, seed: int, weights=None) -> None:
+    def __init__(
+        self,
+        problem: Problem,
+        seed: int,
+        weights: Optional[npt.NDArray[np.float64]] = None,
+    ) -> None:
         super().__init__(problem)
         self.rng = np.random.default_rng(seed)
         if weights:
@@ -69,21 +76,28 @@ class WeightBasedEvaluator(Evaluator):
     def reset(self) -> None:
         self.weights = self._get_random_vec_with_sum_one(len(self.problem.functions))
 
-    def evaluate_sort(self, agents):
+    def evaluate_sort(
+        self, agents: npt.NDArray[np.float64]
+    ) -> Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
         fitnesses = self._calculate_fitnesses_with_constraints(agents)
         fitnesses_sorted_idx = fitnesses.argsort()
         return agents[fitnesses_sorted_idx], fitnesses[fitnesses_sorted_idx]
 
-    def sort(self, agents):
+    def sort(self, agents: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
         fitnesses = self._calculate_fitnesses_with_constraints(agents)
-        return agents[fitnesses.argsort()]
+        agents_by_fitness: npt.NDArray[np.float64] = agents[fitnesses.argsort()]
+        return agents_by_fitness
 
-    def is_better_than(self, agent_a, agent_b):
+    def is_better_than(
+        self, agent_a: npt.NDArray[np.float64], agent_b: npt.NDArray[np.float64]
+    ):
         return self._calculate_fitness_with_constraints(
             agent_a
         ) < self._calculate_fitness_with_constraints(agent_b)
 
-    def _calculate_fitnesses_with_constraints(self, agents: npt.NDArray[np.float64]):
+    def _calculate_fitnesses_with_constraints(
+        self, agents: npt.NDArray[np.float64]
+    ) -> npt.NDArray[np.float64]:
         return np.array(
             [self._calculate_fitness_with_constraints(agent) for agent in agents]
         )
@@ -102,7 +116,8 @@ class WeightBasedEvaluator(Evaluator):
         """Calculates the fitness of an agent. Number of weights must be equal
         to number of objectives/problem functions"""
         fitness_list = self.problem.evaluate_functions(agent)
-        return np.dot(fitness_list, self.weights)
+        weighted_fitness: np.float64 = np.dot(fitness_list, self.weights)
+        return weighted_fitness
 
     def _get_random_vec_with_sum_one(self, length: int) -> npt.NDArray[np.float64]:
         """Generate a vector that sums up to 1 with uniform distribution
@@ -127,7 +142,7 @@ class NonDominatedSortEvaluator(Evaluator):
     problem functions
     """
 
-    def reset(self):
+    def reset(self) -> None:
         return None
 
     def evaluate_sort(
@@ -159,12 +174,14 @@ class NonDominatedSortEvaluator(Evaluator):
     def sort(self, agents: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
         return self.evaluate_sort(agents)[0]
 
-    def is_better_than(self, agent_a, agent_b):
+    def is_better_than(
+        self, agent_a: npt.NDArray[np.float64], agent_b: npt.NDArray[np.float64]
+    ) -> bool:
         return (
             self.problem.breaks_constraint(agent_b) or self._dominates(agent_a, agent_b)
         ) and not self.problem.breaks_constraint(agent_a)
 
-    def get_pareto_fronts(self, agents: npt.NDArray[np.float64]):
+    def get_pareto_fronts(self, agents: npt.NDArray[np.float64]) -> List[Set[Any]]:
         """Returns a sorted list of sets of pareto fronts
 
         The sets themselves are not sorted. The first set is the most dominant
@@ -183,7 +200,9 @@ class NonDominatedSortEvaluator(Evaluator):
             ranking.append(non_dominated_set)
         return ranking
 
-    def _find_non_dominated_agents(self, agents):
+    def _find_non_dominated_agents(
+        self, agents: Iterable[Tuple[Any, ...]]
+    ) -> List[npt.NDArray[np.float64]]:
         """Returns a list of all agents that are not dominated by any other agent
 
         The list is in no specific order. This does not mean that the agents
@@ -199,7 +218,9 @@ class NonDominatedSortEvaluator(Evaluator):
 
         return non_dominated_agents
 
-    def _dominates(self, agent_a, agent_b):
+    def _dominates(
+        self, agent_a: npt.NDArray[np.float64], agent_b: npt.NDArray[np.float64]
+    ) -> bool:
         """Returns true if agent_a dominates agent_b with respect to problem
 
         Definition Pareto-dominating:
@@ -214,7 +235,9 @@ class NonDominatedSortEvaluator(Evaluator):
         )
         return a_not_worse_than_b and a_better_than_b_in_one_objective
 
-    def _is_dominated(self, agent_a, agent_b):
+    def _is_dominated(
+        self, agent_a: npt.NDArray[np.float64], agent_b: npt.NDArray[np.float64]
+    ) -> bool:
         """Return true if agent_a is dominated by agent_b"""
         b_not_worse_than_a = all(
             fun(agent_a) >= fun(agent_b) for fun in self.problem.functions
