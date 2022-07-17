@@ -51,16 +51,16 @@ A `+` indicating that this is already available in pymoo
 """
 
 import numpy as np
-import numpy.typing as npt
 import matplotlib.pyplot as plt
 import pymoo as moo
+import pymoo.config as mooconf
+import pymoo.core.problem as mooprob
+import pymoo.factory as moofac
 
-import omfe
-
-moo.config.Config.show_compile_hit = False
+mooconf.Config.show_compile_hit = False
 
 
-class ChankongHaimes(moo.core.problem.ElementwiseProblem):
+class ChankongHaimes(mooprob.ElementwiseProblem):
     """Definition of the Chankong and Haimes function/problem
 
     See https://en.wikipedia.org/wiki/Test_functions_for_optimization
@@ -81,28 +81,6 @@ class ChankongHaimes(moo.core.problem.ElementwiseProblem):
 
         out["F"] = [f1, f2]
         out["G"] = [g1, g2]
-
-
-def plot_agents(
-    axes: plt.Axes,
-    agents: npt.NDArray[np.float64],
-    problem: omfe.problems.Problem,
-    *args,
-    **kwargs,
-):
-    """Takes a list of agents for a given problem and plots them, returning the plot"""
-
-    # TODO: Highlight current front! use pareto_front from evaluator for this
-    # TODO: Move this to another more fitting module
-
-    F = np.empty((len(agents), 2))
-    for i, agent in enumerate(agents):
-        F[i] = problem.evaluate_functions(agent)
-
-    axes.set_xlabel("f1")
-    axes.set_ylabel("f2")
-    axes.set_title(f"Objective Space Plot: {problem}")
-    return axes.scatter(F[:, 0], F[:, 1], *args, **kwargs)
 
 
 def plot_chankong_haimes_pareto_front(axes: plt.Axes, *args, **kwargs):
@@ -126,13 +104,13 @@ def plot_chankong_haimes_pareto_front(axes: plt.Axes, *args, **kwargs):
 
 
 def plot_binh_korn_pareto_front(axes: plt.Axes, *args, **kwargs):
-    problem = moo.factory.get_problem("bnh")
+    problem = moofac.get_problem("bnh")
     front = problem.pareto_front()
     return axes.plot(front[:, 0], front[:, 1], color="red", alpha=0.7, *args, **kwargs)
 
 
 def plot_kursawe_pareto_front(axes: plt.Axes, *args, **kwargs):
-    problem = moo.factory.get_problem("kursawe")
+    problem = moofac.get_problem("kursawe")
     front = problem.pareto_front()
     front = front[front[:, 0].argsort()]
     return axes.plot(
@@ -148,7 +126,7 @@ def plot_kursawe_pareto_front(axes: plt.Axes, *args, **kwargs):
 
 
 def plot_ctp1_pareto_front(axes: plt.Axes, *args, **kwargs):
-    problem = moo.factory.get_problem("ctp1")
+    problem = moofac.get_problem("ctp1")
     front = problem.pareto_front()
     front = front[front[:, 0].argsort()]
     return axes.plot(front[:, 0], front[:, 1], color="red", alpha=0.7, *args, **kwargs)
