@@ -148,28 +148,17 @@ class NonDominatedSortEvaluator(Evaluator):
     def evaluate_sort(
         self, agents: npt.NDArray[np.float64]
     ) -> Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
-        # Initialize the domination counts aka fitness
-        fitness = np.zeros(len(agents))
-        # Loop through all agents
-        for i, agent in enumerate(agents):
-            if self.problem.breaks_constraint(agent):
-                fitness[i] = np.inf
-                continue
-            # Loop through all other agents
-            for j in range(i + 1, len(agents)):
-                if self.problem.breaks_constraint(agents[j]):
-                    continue
-                # Check if the agent is dominated by the other agent
-                if self._is_dominated(agent, agents[j]):
-                    # If so, increment the domination count of the other agent
-                    fitness[i] += 1
-                # Check if the other agent is dominated by the agent
-                elif self._is_dominated(agents[j], agent):
-                    # If so, increment the domination count of the agent
-                    fitness[j] += 1
 
-        fitness_idx = fitness.argsort()
-        return agents[fitness_idx], fitness[fitness_idx]
+        fun_results = np.empty((len(agents), len(self.problem.functions_vec)))
+        for i, fun in enumerate(self.problem.functions_vec):
+            fun_results[:, i] = fun(agents)
+
+        fitnesses = np.empty(len(agents))
+        for i in range(len(fun_results)):
+            fitnesses[i] = self.count_is_dominated(fun_results, i)
+
+        fitness_idx = fitnesses.argsort()
+        return agents[fitness_idx], fitnesses[fitness_idx]
 
     def sort(self, agents: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
         return self.evaluate_sort(agents)[0]
@@ -246,6 +235,29 @@ class NonDominatedSortEvaluator(Evaluator):
             fun(agent_a) > fun(agent_b) for fun in self.problem.functions
         )
         return b_not_worse_than_a and b_better_than_a_in_one_objective
+
+    def count_is_dominated(
+        self, fun_results: npt.NDArray[np.float64], compare_agent_idx: int
+    ) -> np.int32:
+
+        others_not_worse_than_index = np.all(
+            fun_results[compare_agent_idx, :]
+            >= fun_results[
+                np.r_[:compare_agent_idx, compare_agent_idx + 1 : fun_results.shape[0]]
+            ],
+            1,
+        )
+        others_better_than_index_in_one_objective = np.any(
+            fun_results[compare_agent_idx, :]
+            > fun_results[
+                np.r_[:compare_agent_idx, compare_agent_idx + 1 : fun_results.shape[0]]
+            ],
+            1,
+        )
+
+        return np.sum(
+            others_not_worse_than_index & others_better_than_index_in_one_objective
+        )
 
     def __str__(self) -> str:
         return "Non-dominated sorted"
