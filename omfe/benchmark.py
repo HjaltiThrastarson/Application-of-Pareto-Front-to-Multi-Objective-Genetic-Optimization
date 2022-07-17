@@ -56,6 +56,8 @@ import pymoo as moo
 import pymoo.config as mooconf
 import pymoo.core.problem as mooprob
 import pymoo.factory as moofac
+import pymoo.optimize as mooopt
+from pymoo.algorithms.moo.nsga2 import NSGA2
 
 mooconf.Config.show_compile_hit = False
 
@@ -85,9 +87,9 @@ class ChankongHaimes(mooprob.ElementwiseProblem):
 
 def plot_chankong_haimes_pareto_front(axes: plt.Axes, *args, **kwargs):
     problem = ChankongHaimes()
-    algorithm = moo.factory.get_algorithm("nsga2")
+    algorithm = NSGA2()
     termination = moo.factory.get_termination("default_multi")
-    result = moo.optimize.minimize(
+    result = mooopt.minimize(
         problem,
         algorithm,
         termination,
