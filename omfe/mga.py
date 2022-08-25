@@ -8,34 +8,6 @@ from omfe.graymapping import GrayMapper
 from omfe.evaluator import Evaluator
 
 # TODO: Make separate Shuffling class
-
-
-class AlgorithmRunner:
-    """Runs an algorithm the given number of times"""
-
-    def __init__(self, algorithm, seed=42) -> None:
-        self.algorithm = algorithm
-        self.rng = np.random.default_rng(seed)
-
-    def run(self, times=10) -> npt.NDArray[np.float64]:
-        """Run the supplied algorithm `times` times with a different random
-        initialization
-
-        Args:
-            times (int): The number of times to randomly re-initialize and run
-            the algorithm given in the constructor
-        """
-        best_agent_of_every_random_restart = np.empty(
-            shape=(times, self.algorithm.problem.num_variables)
-        )
-        for i in range(times):
-            self.algorithm.clean()
-            agents_history = self.algorithm.run()
-            best_agent_of_every_random_restart[i] = agents_history[-1][0]
-
-        return best_agent_of_every_random_restart
-
-
 class MicroGeneticAlgorithm:
     """Implements a microgenetic algorithm configurable through parameters
 
@@ -274,3 +246,45 @@ class MicroGeneticAlgorithm:
             self.agents = new_generation
             self.agents_history[itr + 1] = new_generation  # 0 is the start generation
         return self.agents_history
+
+
+class AlgorithmRunner:
+    """Runs an algorithm the given number of times"""
+
+    def __init__(self, algorithm: MicroGeneticAlgorithm, seed=42) -> None:
+        self.algorithm = algorithm
+        self.rng = np.random.default_rng(seed)
+
+    def run(self, times=10) -> npt.NDArray[np.float64]:
+        """Run the supplied algorithm `times` times with a different random
+        initialization
+
+        Args:
+            times (int): The number of times to randomly re-initialize and run
+            the algorithm given in the constructor
+        """
+        best_agent_of_every_random_restart = np.empty(
+            shape=(times, self.algorithm.problem.num_variables)
+        )
+        for i in range(times):
+            self.algorithm.clean()
+            agents_history = self.algorithm.run()
+            best_agent_of_every_random_restart[i] = agents_history[-1][0]
+
+        return best_agent_of_every_random_restart
+
+    def run_all(self, times=10) -> npt.NDArray[np.float64]:
+        all_agents_of_every_random_restart = np.empty(
+            shape=(
+                times,
+                self.algorithm.max_iterations + 1,  # Includes start iteration
+                self.algorithm.population_size,
+                self.algorithm.problem.num_variables,
+            )
+        )
+        for i in range(times):
+            self.algorithm.clean()
+            agents_history = self.algorithm.run()
+            all_agents_of_every_random_restart[i] = agents_history
+
+        return all_agents_of_every_random_restart

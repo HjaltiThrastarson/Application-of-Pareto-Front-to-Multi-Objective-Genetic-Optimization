@@ -63,6 +63,22 @@ class Problem(ABC):
         return len(self.functions)
 
 
+def plot_agent(
+    axes: plt.Axes,
+    agent: npt.NDArray[np.float64],
+    problem: Problem,
+    *args,
+    **kwargs,
+):
+    """Takes an agent for a given problem and plots it, returning the plot"""
+
+    # TODO: Highlight current front! use pareto_front from evaluator for this
+    # TODO: Move this to another more fitting module
+
+    F = problem.evaluate_functions(agent)
+    return axes.scatter(F[0], F[1], *args, **kwargs)
+
+
 def plot_agents(
     axes: plt.Axes,
     agents: npt.NDArray[np.float64],
